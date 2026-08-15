@@ -1,128 +1,158 @@
-# Decision 0002 — Experiment 0001: The Alignment Probe
+# Decision 0002 — Experiment 0001: The Coverage Probe
 
 **Date:** 2026-08-15
-**Status:** **Proposed** — awaiting founder go-ahead before implementation
+**Status:** **Revised** — original synthetic-corpus design superseded by the
+real corpus supplied on 2026-08-15.
 **Addresses:** CONSTITUTION §11 (discovery through building), §12 (evaluation),
 §16 (the ultimate test); PRODUCT_THESIS Hypothesis 8
 
 ---
+
+## What changed and why
+
+The first version of this experiment proposed a synthetic 12-document corpus
+with planted findings, because no real documents were available. Real documents
+are now available: **34 hospital policy PDFs and 28 Joint Commission standards**
+across four chapters (EM, IC, LD, NR).
+
+That replaces the synthetic corpus entirely. A synthetic corpus written by the
+same agent that writes the extractor can only ever demonstrate that the
+extractor understands its own vocabulary. Two things also became true that
+change the experiment's shape:
+
+1. **Findings can no longer be planted — they must be found.** This is harder
+   and much more informative. The gold set is now a hand-labeled judgment about
+   real documents rather than a list of things I hid on purpose.
+2. **The corpus contains no education, competency, or audit artifacts** — only
+   text *requiring* them (Discovery 0003). The MISSION's worked example, whose
+   gap sits at the competency stage, therefore cannot be reproduced here.
 
 ## The thesis under test
 
 > Connecting knowledge across independent sources produces intelligence that no
 > individual source can provide, and that ordinary search cannot produce.
 
-Note the second clause. Proving the first alone is not enough — CONSTITUTION §16
-says a system that merely provides better search has not demonstrated the
-thesis, and PRODUCT_THESIS lists "most useful relationships can be produced by
-ordinary search" as a falsifier. So the experiment must be **comparative**, not
-demonstrative. A demo that produces impressive findings and beats nothing proves
-nothing.
+Both clauses matter. CONSTITUTION §16 says a system that merely provides better
+search has not demonstrated the thesis, so the experiment is **comparative**.
 
-## Design
+## The question
 
-One narrow clinical domain — **medication administration and patient
-identification** — because it is where regulation, policy, procedure, education,
-competency, and audit all genuinely converge in a real hospital, and it is the
-domain of the MISSION's own worked example.
+Reframed onto the stage this corpus fully represents on both sides:
 
-A corpus of **10–12 short documents** spanning six source genres, with findings
-and non-findings planted *before* any extraction logic is designed.
+> For each Joint Commission Element of Performance that explicitly requires
+> documentation, what in the hospital's 34 policies covers it — and what
+> appears not to be covered at all?
 
-### Legal constraint on the corpus
+The corpus makes this a well-posed question rather than an arbitrary one:
 
-Joint Commission standards, CMS interpretive guidance, and most accreditation
-content are copyrighted and licensed. **No verbatim external standard text will
-be committed to this repository.** Corpus documents are synthetic, written in
-the style and structure of the genre, clearly labeled fictional, for a fictional
-"Northbrook Regional Medical Center." This is consistent with CONSTITUTION §8:
-the hospital supplies its own licensed knowledge; Veris never redistributes it.
+| | Count |
+|---|---|
+| Elements of Performance | 94 |
+| **EPs tagged `Attributes: Documentation`** | **61** |
+| Hospital policy documents | 34 |
 
-### Planted findings (the positives)
+Per Discovery 0003, the `Documentation` attribute is the standard declaring that
+evidence must exist. So each of those 61 EPs is a grounded question, not a
+question Veris invented. This is also, not incidentally, the actual
+accreditation-readiness workflow — which makes it a candidate answer to
+PRODUCT_THESIS Hypothesis 8 (the first killer workflow), rather than a lab task.
 
-| # | Type | Design |
-|---|---|---|
-| P1 | **Gap** | Requirement + policy + education all address independent barcode scanning; no competency validates it. The MISSION example, reproduced faithfully. |
-| P2 | **Gap** | A policy commits to a two-nurse verification for high-alert medications; no procedure operationalizes it and no audit measures it. Tests a gap at a different lifecycle stage than P1. |
-| P3 | **Conflict** | Policy requires two patient identifiers (name + DOB); the unit procedure instructs name + room number. Same role, incompatible content. |
-| P4 | **Drift** | Policy was revised to require scanning *before* administration; education still teaches scanning *during* the pass. Same direction, diverged specifics. |
-| P5 | **Orphan** | A standing policy commitment tied to a requirement that has been superseded — a rule with no live obligation behind it. |
-| P6 | **Change impact** | A revised requirement lands; the system must identify every downstream claim in its thread as candidate-for-review. |
+## Why this qualifies as a test of the thesis
 
-### Planted non-findings (the decoys — the real test)
-
-| # | Type | Design | Must produce |
-|---|---|---|---|
-| D1 | **Vocabulary decoy** | A competency *does* validate barcode scanning but never uses the phrase — "scans the patient's wristband and the medication label prior to administration." | **No gap.** Tests semantic recall; a lexical system fails here. |
-| D2 | **Lexical decoy** | Two documents share heavy "medication" vocabulary but address unrelated obligations (controlled substance waste vs. allergy documentation). | **No relationship.** Tests precision; an embedding-similarity system fails here. |
-| D3 | **Supersession decoy** | Two policy versions in the corpus, one explicitly superseding the other, stating different things. | **No conflict** — a supersession, correctly identified. |
-| D4 | **Incorporation decoy** | A competency covers an obligation only by reference: "administers medications in accordance with hospital policy." | Either correct coverage or an *explicitly flagged uncertainty*. Silently calling this a gap is a failure; silently calling it full coverage is also a failure. |
-| D5 | **Out-of-scope decoy** | An obligation whose implementing evidence genuinely lives in a system not supplied (the LMS). | A gap **scoped and confidence-capped**, not an absolute claim. |
-
-D1–D3 are the metrics that matter. Any system can find planted gaps; only a
-correct one declines to find the absent ones.
+- **Cross-source by necessity.** Every finding requires a standard *and* a
+  policy. Nothing derivable from one document counts.
+- **Not a retrieval question.** "Which of these 61 requirements has no
+  corresponding commitment anywhere in 34 documents?" has no answer in any
+  document. It exists only in the relation between them.
+- **Absence is the output**, which is what Discovery 0002 argues no
+  retrieval-shaped system can produce.
 
 ## Baselines — what the pipeline must beat
 
 | ID | Baseline | Purpose |
 |---|---|---|
-| **B0** | Keyword / BM25 search over documents | The floor. Establishes that the problem is not trivially lexical. |
-| **B1** | Embedding similarity over chunks, top-k, threshold | The generic RAG strawman. This is what a competent team would ship in a week; if it wins, Veris as conceived is unnecessary. |
-| **B2** | **Long-context LLM given the entire corpus at once, asked to find gaps and conflicts** | The honest, dangerous baseline. |
+| **B0** | Keyword / BM25, EP text as query over policies | The floor. |
+| **B1** | Embedding similarity over chunks, top-k + threshold | The generic RAG strawman: what a competent team ships in a week. |
+| **B2** | Long-context model, whole corpus in one prompt | Honest and dangerous at this size. Note it **cannot run on the deployment target at all** (Decision 0004), so even if it wins on accuracy it does not win as architecture. |
+| **B3** | **CFR citation join** — link policy to EP where both cite the same §482.x | **New, and the most dangerous baseline.** Deterministic, free, needs no model. If this is good enough, most of Veris is unnecessary. |
 
-B2 deserves emphasis. At 12 documents, a frontier model can read the whole
-corpus and may well match or beat a structured pipeline. **I predict B2 will
-score competitively on the positives and worse on the decoys.** If B2 wins
-outright, the correct conclusion is not "keep building the pipeline anyway" — it
-is that the pipeline's justification is **scale, auditability, reproducibility,
-and incremental change detection**, not raw accuracy, and the roadmap should be
-rewritten around those instead. That conclusion will be reported plainly if the
-evidence supports it.
+B3 was not in the original design and only became visible from the real data. My
+prediction is that it delivers high recall and poor precision — §482.13 joins 15
+policies to 1 standard, §482.15 joins 1 policy to 13 standards — so it will
+propose the right pair among many wrong ones but cannot say whether the policy
+actually *satisfies* the EP. That prediction is recorded here so it can be
+wrong. If B3 alone produces defensible coverage findings, that is a major
+negative result about the value of semantic connection and will be reported as
+such.
+
+## The gold set
+
+Hand-labeled by me, **before the pipeline is run**, and frozen by hash. For a
+stratified sample of **20 of the 61** documentation-tagged EPs, each label
+records:
+
+- `COVERED` — with the policy document and the exact span that covers it.
+- `PARTIAL` — covered in part, with the span and what is missing.
+- `NOT_COVERED` — with the search terms tried, so the label is auditable.
+
+Every `COVERED` label must cite a span. A label without evidence is not a label.
+
+### The honesty problem, stated plainly
+
+I am writing the gold set, the extractor, and — for now — acting as the model.
+That is three roles that should not be held by one party, and it is the single
+largest threat to this experiment's validity. Mitigations:
+
+- Labels are frozen and hashed before extraction logic exists.
+- Every label cites evidence, so a domain expert can audit it in minutes.
+- The stratified sample includes EPs I expect to be uncovered *and* EPs I expect
+  to be covered only in unrelated vocabulary — the cases most likely to embarrass
+  the pipeline.
+
+None of these fully solve it. **Founder review of the 20 labels is the real
+control**, and it is cheap: 20 judgments in a domain the founder knows. Until
+that review happens, results should be read as "the pipeline agrees with me,"
+which is weaker than "the pipeline is right."
+
+## The decoys — now found rather than planted
+
+The corpus supplies natural adversarial cases, which is better than planted ones
+because I did not choose them:
+
+| # | Case | Correct behavior |
+|---|---|---|
+| N1 | **Empty standards.** `LD.12.01.01`, `LD.13.01.07`, `LD.13.03.01` have zero content. | Must **not** yield findings. A gap "found" here is manufactured by ingestion, not observed. These are retained and flagged rather than dropped for exactly this reason. |
+| N2 | **Duplicate-numbered policy pairs** — `01` Hand Hygiene / Infection Control, `18` Blood Administration / Transfusion Reaction, `27` Pain Assessment ×2. | Overlapping scope. Genuine drift should be reported; mere restatement must not be called a conflict. |
+| N3 | **Vocabulary distance.** "Two patient identifiers" appears in 4 policies; EPs describing the same obligation use entirely different phrasing. | Coverage must be found across the vocabulary gap (defeats B0). |
+| N4 | **Coarse citation buckets.** §482.13 → 15 policies. | Must not emit 15 relationships (defeats B3 and B1). |
+| N5 | **Requirement-about-X vs. X.** 84 mentions of education, none of which *is* education. | Must not classify an EP as TEACHES because it discusses training (Discovery 0003). |
 
 ## Metrics
 
-1. **Decoy false-positive count** (primary). Target: 0 on D1–D3.
-2. **Finding recall / precision** against the planted set P1–P6.
-3. **Evidence validity rate** — % of emitted claims whose quote appears
-   byte-for-byte in the cited source at the cited offsets. Target: 100%. This is
-   pass/fail, not a score; anything below 100% is a defect, not a tuning knob.
-4. **Cross-source necessity** — % of findings that provably require ≥2 sources.
-   A finding derivable from one document does not count toward the thesis.
-5. **Scope correctness** — every absence finding names the corpus subset
-   searched.
-
-## Pre-registered predictions
-
-Recorded now so the result cannot be rationalized after the fact:
-
-- B0 finds P3 (lexically visible conflict) and nothing else. Fails D1.
-- B1 finds no gaps at all — similarity search has no representation of absence —
-  and produces false links on D2.
-- B2 finds most of P1–P4, is inconsistent run to run, and fails D3 or D4.
-- The claim pipeline finds P1–P4 reliably, struggles with P5/P6, and passes D1–D3.
-- **The most likely way the pipeline fails is D4** (incorporation by reference),
-  because "per hospital policy" defeats claim atomization by design.
+1. **False-positive gaps** (primary) — findings of absence where the gold set
+   says covered. Target 0 on N1.
+2. **Coverage precision / recall** against the 20-EP gold set.
+3. **Evidence validity** — % of claims whose quote appears byte-for-byte at the
+   cited offsets. **Pass/fail at 100%**, not a score to tune.
+4. **Cross-source necessity** — % of findings requiring ≥2 sources. Anything
+   less than ~100% means the experiment is not testing the thesis.
+5. **Uplift over B3** — the number that decides whether semantic connection is
+   earning its complexity.
 
 ## Kill criteria
 
-Reported honestly rather than worked around:
-
-- If B1 matches the pipeline on the positives **and** the decoys, the semantic
-  connection layer is not earning its complexity.
-- If evidence validity cannot reach 100%, the grounded-claim primitive
-  (Decision 0001) is wrong and must be reconsidered before anything is built on it.
-- If the pipeline cannot pass D1–D3, the false-positive problem named in
-  PRODUCT_THESIS is real and unsolved, and no amount of UI work matters.
+- **B3 matches the pipeline** → semantic connection is not earning its keep on
+  this corpus; report it and reconsider the product.
+- **Evidence validity below 100%** → the grounded-claim primitive (Decision 0001)
+  is wrong and must be fixed before anything is built on it.
+- **Gaps reported against the three empty standards** → the ingestion-level
+  false-gap problem is real and unsolved, which is disqualifying regardless of
+  every other score.
 
 ## Deliberate limitations
 
-- **I am writing both the corpus and the system**, which risks an unconsciously
-  easy test. Mitigations: findings and decoys are frozen and hashed *before*
-  extraction logic exists; documents are written in genre voice rather than in
-  the vocabulary the extractor will use; D1 and D2 exist specifically to punish
-  the shortcuts I would be tempted to take.
-- **A synthetic corpus is a smoke test, not proof.** It can only falsify, not
-  validate. Passing it means "keep going," never "this works." The real test
-  requires real hospital documents — see the ask in the founder report.
-- 12 documents says nothing about behavior at 12,000. Scale is deliberately out
-  of scope for Experiment 0001.
+- 62 documents says nothing about 12,000.
+- Policies here are compliance-summary documents citing CFR sections; a real
+  hospital's policy library is longer, messier, inconsistently formatted, and
+  frequently uncited. Success here is necessary, not sufficient.
+- One customer's corpus. Generalization is untested.

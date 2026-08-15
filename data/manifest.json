@@ -1,0 +1,841 @@
+[
+  {
+    "doc_id": "01_hand_hygiene_detailed",
+    "source_path": "01_Hand_Hygiene_DETAILED.pdf",
+    "genre": "policy",
+    "title": "Hand Hygiene DETAILED",
+    "text_sha256": "5a17b8cc63b0bf801d961b51a02d5e5fa51a84ad56f6968806e862b82eaf5715",
+    "char_count": 9491,
+    "metadata": {}
+  },
+  {
+    "doc_id": "01_infection_control_and_prevention",
+    "source_path": "01_Infection_Control_and_Prevention.pdf",
+    "genre": "policy",
+    "title": "Infection Control and Prevention",
+    "text_sha256": "707d3e8a07b2a6c42e30eea59eadafbef6f97214634d8d3e8e09cd085ce31b58",
+    "char_count": 2077,
+    "metadata": {}
+  },
+  {
+    "doc_id": "02_patient_rights_care_in_a_safe_setting",
+    "source_path": "02_Patient_Rights__Care_in_a_Safe_Setting.pdf",
+    "genre": "policy",
+    "title": "Patient Rights  Care in a Safe Setting",
+    "text_sha256": "b595871a5521b6d1f9567a725de7a26e44d21e49a251c167e4ebf1885861071e",
+    "char_count": 1984,
+    "metadata": {}
+  },
+  {
+    "doc_id": "03_medical_screening_exam_emtala",
+    "source_path": "03_Medical_Screening_Exam_(EMTALA).pdf",
+    "genre": "policy",
+    "title": "Medical Screening Exam (EMTALA)",
+    "text_sha256": "289bb49c48e8bd69ea886d10551d8f30af67a63ab210e21993efc34efb3a6940",
+    "char_count": 2024,
+    "metadata": {}
+  },
+  {
+    "doc_id": "04_informed_consent",
+    "source_path": "04_Informed_Consent.pdf",
+    "genre": "policy",
+    "title": "Informed Consent",
+    "text_sha256": "92fe9040302b89196f0493349c647a631c0567972f33310458e5a5d5a6054717",
+    "char_count": 2093,
+    "metadata": {}
+  },
+  {
+    "doc_id": "05_medication_administration",
+    "source_path": "05_Medication_Administration.pdf",
+    "genre": "policy",
+    "title": "Medication Administration",
+    "text_sha256": "31bad811d0d6c2807f4c191ff96e5b297c53c9e9ab369dd20ef15c644d171b62",
+    "char_count": 2108,
+    "metadata": {}
+  },
+  {
+    "doc_id": "06_transfer_and_discharge_procedures",
+    "source_path": "06_Transfer_and_Discharge_Procedures.pdf",
+    "genre": "policy",
+    "title": "Transfer and Discharge Procedures",
+    "text_sha256": "88038c79259c3049445c213faa08ffb1992f488b143a471160c3a3b05f64e240",
+    "char_count": 2123,
+    "metadata": {}
+  },
+  {
+    "doc_id": "07_restraint_and_seclusion_policies",
+    "source_path": "07_Restraint_and_Seclusion_Policies.pdf",
+    "genre": "policy",
+    "title": "Restraint and Seclusion Policies",
+    "text_sha256": "725d16543b8584f54ddfd70bf382b87e832572a3bad7e1cfc1ba592f4f8001f1",
+    "char_count": 2164,
+    "metadata": {}
+  },
+  {
+    "doc_id": "08_patient_privacy_and_hipaa_compliance",
+    "source_path": "08_Patient_Privacy_and_HIPAA_Compliance.pdf",
+    "genre": "policy",
+    "title": "Patient Privacy and HIPAA Compliance",
+    "text_sha256": "d62ce92eb3ad96b741649a165364bdf129cc00fbb64c556e19651cb70cf8ffbf",
+    "char_count": 2304,
+    "metadata": {}
+  },
+  {
+    "doc_id": "09_nursing_staff_supervision",
+    "source_path": "09_Nursing_Staff_Supervision.pdf",
+    "genre": "policy",
+    "title": "Nursing Staff Supervision",
+    "text_sha256": "768a2cdb58a24fbe79a2a61634d37717137a1360a9537384635287241b396c0e",
+    "char_count": 2227,
+    "metadata": {}
+  },
+  {
+    "doc_id": "10_environment_of_care_hazardous_materials",
+    "source_path": "10_Environment_of_Care_-_Hazardous_Materials.pdf",
+    "genre": "policy",
+    "title": "Environment of Care - Hazardous Materials",
+    "text_sha256": "634e7a97d627cf151d64d480101db812f2ae5cc2daef2c011224d0668b028f17",
+    "char_count": 2255,
+    "metadata": {}
+  },
+  {
+    "doc_id": "11_emergency_preparedness_disaster_plan",
+    "source_path": "11_Emergency_Preparedness_-_Disaster_Plan.pdf",
+    "genre": "policy",
+    "title": "Emergency Preparedness - Disaster Plan",
+    "text_sha256": "bd7d00b9c4ea58ba3a62991e548c18d8be4276b126b2a001afd5752f0eb334c3",
+    "char_count": 2201,
+    "metadata": {}
+  },
+  {
+    "doc_id": "12_patient_abuse_harassment_policy",
+    "source_path": "12_Patient_Abuse_-_Harassment_Policy.pdf",
+    "genre": "policy",
+    "title": "Patient Abuse - Harassment Policy",
+    "text_sha256": "6af053092b17e833c6de7d7f99c7ec3e7b7d49e4d1520223a00116e7d9e9339e",
+    "char_count": 2259,
+    "metadata": {}
+  },
+  {
+    "doc_id": "13_staffing_and_delivery_of_care",
+    "source_path": "13_Staffing_and_Delivery_of_Care.pdf",
+    "genre": "policy",
+    "title": "Staffing and Delivery of Care",
+    "text_sha256": "d27ae37335ad4e7bf701138122556aa6f74afbcd9acb186ac4e9eb1630b36c9d",
+    "char_count": 2219,
+    "metadata": {}
+  },
+  {
+    "doc_id": "14_credentialing_and_supervision_of_contract_staff",
+    "source_path": "14_Credentialing_and_Supervision_of_Contract_Staff.pdf",
+    "genre": "policy",
+    "title": "Credentialing and Supervision of Contract Staff",
+    "text_sha256": "a800574299ce529d4e3f33090250fc164bbaf7bf9017172b25014064a6723a06",
+    "char_count": 2421,
+    "metadata": {}
+  },
+  {
+    "doc_id": "15_quality_assurance_performance_improvement_qapi",
+    "source_path": "15_Quality_Assurance_-_Performance_Improvement_(QAPI).pdf",
+    "genre": "policy",
+    "title": "Quality Assurance - Performance Improvement (QAPI)",
+    "text_sha256": "011f872372fd7b9e48f9a711e908b197d46b68726ce6053174c5be61b7b5e2bf",
+    "char_count": 2375,
+    "metadata": {}
+  },
+  {
+    "doc_id": "16_do_not_resuscitate_dnr_polst_orders",
+    "source_path": "16_Do_Not_Resuscitate_DNR_-_POLST_Orders.pdf",
+    "genre": "policy",
+    "title": "Do Not Resuscitate DNR - POLST Orders",
+    "text_sha256": "50d87ebd03b4be9128aaf583a580097e5778b3145fbe247607b95b68515cb779",
+    "char_count": 2356,
+    "metadata": {}
+  },
+  {
+    "doc_id": "17_surgical_and_procedural_safety",
+    "source_path": "17_Surgical_and_Procedural_Safety.pdf",
+    "genre": "policy",
+    "title": "Surgical and Procedural Safety",
+    "text_sha256": "3952568fd1883f85afc3ea82016e2f136b1c83db43479febf048146145efe814",
+    "char_count": 2218,
+    "metadata": {}
+  },
+  {
+    "doc_id": "18_blood_product_transfusion_reaction_detailed",
+    "source_path": "18_Blood_Product_Transfusion_Reaction_DETAILED.pdf",
+    "genre": "policy",
+    "title": "Blood Product Transfusion Reaction DETAILED",
+    "text_sha256": "5158f8552eba49cb027242075dc35deb0173d9c8d6a9c0e6d70db89dd4bcc820",
+    "char_count": 10988,
+    "metadata": {}
+  },
+  {
+    "doc_id": "18_blood_and_blood_product_administration",
+    "source_path": "18_Blood_and_Blood_Product_Administration.pdf",
+    "genre": "policy",
+    "title": "Blood and Blood Product Administration",
+    "text_sha256": "c2d4b4eef11c05c94ddbfc2908082d02d6af9801b364faa44096030d3ae69669",
+    "char_count": 2462,
+    "metadata": {}
+  },
+  {
+    "doc_id": "19_fall_prevention_program",
+    "source_path": "19_Fall_Prevention_Program.pdf",
+    "genre": "policy",
+    "title": "Fall Prevention Program",
+    "text_sha256": "b725403312c5f15976c61ca55376a2286f192dec04707030b1de53c64fcfed32",
+    "char_count": 2374,
+    "metadata": {}
+  },
+  {
+    "doc_id": "20_pressure_injury_prevention_and_treatment",
+    "source_path": "20_Pressure_Injury_Prevention_and_Treatment.pdf",
+    "genre": "policy",
+    "title": "Pressure Injury Prevention and Treatment",
+    "text_sha256": "e424e0f13a48d588260a348de81958d42e7bd6b2a784720bcd272b9c1298dab7",
+    "char_count": 2516,
+    "metadata": {}
+  },
+  {
+    "doc_id": "21_patient_identification_policy",
+    "source_path": "21_Patient_Identification_Policy.pdf",
+    "genre": "policy",
+    "title": "Patient Identification Policy",
+    "text_sha256": "ba5c4080188c5c2d918b25c068800e62eeb412d443b5cabae891d96688d4fd64",
+    "char_count": 2452,
+    "metadata": {}
+  },
+  {
+    "doc_id": "22_sepsis_recognition_and_management",
+    "source_path": "22_Sepsis_Recognition_and_Management.pdf",
+    "genre": "policy",
+    "title": "Sepsis Recognition and Management",
+    "text_sha256": "442d07664b6fad31ca559e42fded94d90af61c5f237ace77e3a26056bd0584a3",
+    "char_count": 2340,
+    "metadata": {}
+  },
+  {
+    "doc_id": "23_stroke_care_protocol",
+    "source_path": "23_Stroke_Care_Protocol.pdf",
+    "genre": "policy",
+    "title": "Stroke Care Protocol",
+    "text_sha256": "fe22f938837e85c74a8c9edfee09d0038f48e289aae581662f039899dc871e51",
+    "char_count": 2422,
+    "metadata": {}
+  },
+  {
+    "doc_id": "24_moderate_and_deep_sedation_policy",
+    "source_path": "24_Moderate_and_Deep_Sedation_Policy.pdf",
+    "genre": "policy",
+    "title": "Moderate and Deep Sedation Policy",
+    "text_sha256": "4fd68939cb84fa2f3cc851ec0a5bfb20c969fbf62e7ae10df3f57fc0e41c647e",
+    "char_count": 2431,
+    "metadata": {}
+  },
+  {
+    "doc_id": "25_discharge_planning_and_care_transitions",
+    "source_path": "25_Discharge_Planning_and_Care_Transitions.pdf",
+    "genre": "policy",
+    "title": "Discharge Planning and Care Transitions",
+    "text_sha256": "f059ec5d09d6a25ce8639bf3c3cab24fa2bd36857483f72443036cbe4c8ff403",
+    "char_count": 2558,
+    "metadata": {}
+  },
+  {
+    "doc_id": "26_rapid_response_team_rrt_policy",
+    "source_path": "26_Rapid_Response_Team_RRT_Policy.pdf",
+    "genre": "policy",
+    "title": "Rapid Response Team RRT Policy",
+    "text_sha256": "656293ac964e4749f85715b00fb4e9545db6049401afc4e8fd29c300cfad219d",
+    "char_count": 2439,
+    "metadata": {}
+  },
+  {
+    "doc_id": "27_pain_assessment_and_management",
+    "source_path": "27_Pain_Assessment_and_Management.pdf",
+    "genre": "policy",
+    "title": "Pain Assessment and Management",
+    "text_sha256": "e63a99aa5a5550fe14dd371b7aa5aeb6b6f8fefc77a670e11bf00d8184989957",
+    "char_count": 2607,
+    "metadata": {}
+  },
+  {
+    "doc_id": "27_pain_assessment_and_reassessment_detailed",
+    "source_path": "27_Pain_Assessment_and_Reassessment_DETAILED.pdf",
+    "genre": "policy",
+    "title": "Pain Assessment and Reassessment DETAILED",
+    "text_sha256": "25b6b719b43d91c90f753f144ea5c3c48233fb339a1fe18e7259ab2edf96c744",
+    "char_count": 9358,
+    "metadata": {}
+  },
+  {
+    "doc_id": "28_suicide_risk_screening_and_prevention",
+    "source_path": "28_Suicide_Risk_Screening_and_Prevention.pdf",
+    "genre": "policy",
+    "title": "Suicide Risk Screening and Prevention",
+    "text_sha256": "57300be710d042aa0a7076bdce7e7b37df4929b0324674eab43f124aeed1b870",
+    "char_count": 2550,
+    "metadata": {}
+  },
+  {
+    "doc_id": "29_antibiotic_stewardship_program",
+    "source_path": "29_Antibiotic_Stewardship_Program.pdf",
+    "genre": "policy",
+    "title": "Antibiotic Stewardship Program",
+    "text_sha256": "ff9f5524314223d667635c41a4594ec1bf6f8aa7f9ec8357d4940d943ab3ad84",
+    "char_count": 2525,
+    "metadata": {}
+  },
+  {
+    "doc_id": "30_workplace_violence_prevention",
+    "source_path": "30_Workplace_Violence_Prevention.pdf",
+    "genre": "policy",
+    "title": "Workplace Violence Prevention",
+    "text_sha256": "bec1ba20e15ae5813d3f99a5921826b0cd3cfc1110c1802b279ccc8bde590ca8",
+    "char_count": 2754,
+    "metadata": {}
+  },
+  {
+    "doc_id": "31_central_line_dressing_change_detailed",
+    "source_path": "31_Central_Line_Dressing_Change_DETAILED.pdf",
+    "genre": "policy",
+    "title": "Central Line Dressing Change DETAILED",
+    "text_sha256": "92466bdff102b3876551bf784b15627fab80dacc9951ca1f703434cb7d697447",
+    "char_count": 13245,
+    "metadata": {}
+  },
+  {
+    "doc_id": "em_emergency_management_em_09_01_01",
+    "source_path": "EM - Emergency Management/EM.09.01.01.md",
+    "genre": "standard",
+    "title": "EM.09.01.01",
+    "text_sha256": "8274426ffd687e2ab0d2880c82f260ea6ca45a227a85d2b6095d59c592116579",
+    "char_count": 5959,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.09.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "3c9001cff60339f4"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_11_01_01",
+    "source_path": "EM - Emergency Management/EM.11.01.01.md",
+    "genre": "standard",
+    "title": "EM.11.01.01",
+    "text_sha256": "4dae738fcef010b11c509113fb26e2493a95b558ba889b0799598112fb584f65",
+    "char_count": 4426,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.11.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "52718b3e44cb9e1f"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_12_01_01",
+    "source_path": "EM - Emergency Management/EM.12.01.01.md",
+    "genre": "standard",
+    "title": "EM.12.01.01",
+    "text_sha256": "325983b095407abbad11739f62ea7142dcd88e4f6399302e2b8eb4f8aa73037f",
+    "char_count": 6620,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.12.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "8d2b39846945cd29"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_12_02_01",
+    "source_path": "EM - Emergency Management/EM.12.02.01.md",
+    "genre": "standard",
+    "title": "EM.12.02.01",
+    "text_sha256": "3881ffee17d2981f342e18bb88d9bc48b4688248eae868dd9327faac66771fa2",
+    "char_count": 5734,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.12.02.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "fde44e24a4589517"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_12_02_03",
+    "source_path": "EM - Emergency Management/EM.12.02.03.md",
+    "genre": "standard",
+    "title": "EM.12.02.03",
+    "text_sha256": "7c188b2bde7a1ca4f6bd76096ed57003b64ee4632efb0d4f046e9d5ae7cec86a",
+    "char_count": 3440,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.12.02.03",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "98e70d2092325cbb"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_12_02_05",
+    "source_path": "EM - Emergency Management/EM.12.02.05.md",
+    "genre": "standard",
+    "title": "EM.12.02.05",
+    "text_sha256": "06f193b80452c76471a6a1b66eb05561dff6fcabd5c6401f7b90466d246d7a16",
+    "char_count": 2537,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.12.02.05",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "06f193b80452c764"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_12_02_07",
+    "source_path": "EM - Emergency Management/EM.12.02.07.md",
+    "genre": "standard",
+    "title": "EM.12.02.07",
+    "text_sha256": "0c9c84b168850bcb991ec071915c58c76dae04e0f1c2c08f4bbf257518a4d915",
+    "char_count": 3084,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.12.02.07",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "a2c7574cef6e3e70"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_12_02_09",
+    "source_path": "EM - Emergency Management/EM.12.02.09.md",
+    "genre": "standard",
+    "title": "EM.12.02.09",
+    "text_sha256": "04b6bb5cdc0eaf530e367e115e8667faf4904435e516bd2a5be4b678f66f2be6",
+    "char_count": 4677,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.12.02.09",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "a1b2ef5a54216961"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_12_02_11",
+    "source_path": "EM - Emergency Management/EM.12.02.11.md",
+    "genre": "standard",
+    "title": "EM.12.02.11",
+    "text_sha256": "7c6b9f6f293fc6848f1e812291bac4b55d3f24ad20680684cb0542ee722dfa07",
+    "char_count": 4338,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.12.02.11",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "30a1b3345347dafd"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_13_01_01",
+    "source_path": "EM - Emergency Management/EM.13.01.01.md",
+    "genre": "standard",
+    "title": "EM.13.01.01",
+    "text_sha256": "3b052063a688562f71cfa7b84535c6b8427f57846f96eda15148d9b45ee695a8",
+    "char_count": 5488,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.13.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "cf093440a25e92bf"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_15_01_01",
+    "source_path": "EM - Emergency Management/EM.15.01.01.md",
+    "genre": "standard",
+    "title": "EM.15.01.01",
+    "text_sha256": "5fec29b05601bfc1a9e027c55e2b93c03174d8b9c2804976cad4942418383345",
+    "char_count": 4955,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.15.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "a94c356a617eac28"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_16_01_01",
+    "source_path": "EM - Emergency Management/EM.16.01.01.md",
+    "genre": "standard",
+    "title": "EM.16.01.01",
+    "text_sha256": "ac33d5f3aad214b54548e79058e64395065761bff2e06dfa08b03b9870408a79",
+    "char_count": 5348,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.16.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "5ec5383a93ea7427"
+    }
+  },
+  {
+    "doc_id": "em_emergency_management_em_17_01_01",
+    "source_path": "EM - Emergency Management/EM.17.01.01.md",
+    "genre": "standard",
+    "title": "EM.17.01.01",
+    "text_sha256": "fa29f8d6d7cfdd5b8990d23c6d1400c73e6602b900d2ee5d3bd58c22f4c94a51",
+    "char_count": 2967,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "EM - Emergency Management",
+      "standard": "EM.17.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "087a0e3158ba8c4e"
+    }
+  },
+  {
+    "doc_id": "ic_infection_prevention_and_control_ic_04_01_01",
+    "source_path": "IC - Infection Prevention and Control/IC.04.01.01.md",
+    "genre": "standard",
+    "title": "IC.04.01.01",
+    "text_sha256": "ee47b738b041308528ca7eac82727a07ace0a1c47250a833b989043ed31a1148",
+    "char_count": 6945,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "IC - Infection Prevention and Control",
+      "standard": "IC.04.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "dacdbb95a6fa66bd"
+    }
+  },
+  {
+    "doc_id": "ic_infection_prevention_and_control_ic_05_01_01",
+    "source_path": "IC - Infection Prevention and Control/IC.05.01.01.md",
+    "genre": "standard",
+    "title": "IC.05.01.01",
+    "text_sha256": "83bff52a9867a5c714476590d93ba21971230558732381da8a06ceb4b2dc4b31",
+    "char_count": 1532,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "IC - Infection Prevention and Control",
+      "standard": "IC.05.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "ae7a011935e8056c"
+    }
+  },
+  {
+    "doc_id": "ic_infection_prevention_and_control_ic_06_01_01",
+    "source_path": "IC - Infection Prevention and Control/IC.06.01.01.md",
+    "genre": "standard",
+    "title": "IC.06.01.01",
+    "text_sha256": "80748e330a33c8c46a9b2a23b87d96e7be5ea0aefdac05c1905b154c7ef181c8",
+    "char_count": 1873,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "IC - Infection Prevention and Control",
+      "standard": "IC.06.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "0f7bdb11a12c5145"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_11_01_01",
+    "source_path": "LD - Leadership/LD.11.01.01.md",
+    "genre": "standard",
+    "title": "LD.11.01.01",
+    "text_sha256": "ee76e84bf5f2bbbba3375dc72f7258d73d3184776e33a7fb9b346c43b308750f",
+    "char_count": 11994,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "LD - Leadership",
+      "standard": "LD.11.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "9d145da1ca7b7a39"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_11_02_01",
+    "source_path": "LD - Leadership/LD.11.02.01.md",
+    "genre": "standard",
+    "title": "LD.11.02.01",
+    "text_sha256": "5eb1148e470932450bb9aa3e508fe53eb7db88093c03dff3028baadb85cc0642",
+    "char_count": 3840,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "LD - Leadership",
+      "standard": "LD.11.02.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "5eb1148e47093245"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_12_01_01",
+    "source_path": "LD - Leadership/LD.12.01.01.md",
+    "genre": "standard",
+    "title": "LD.12.01.01",
+    "text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "char_count": 0,
+    "metadata": {
+      "content_status": "empty"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_13_01_01",
+    "source_path": "LD - Leadership/LD.13.01.01.md",
+    "genre": "standard",
+    "title": "LD.13.01.01",
+    "text_sha256": "c6252daa8e225de26f4c1c64c2b562bae122ed7875876457ea81bc2360e81398",
+    "char_count": 2334,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "LD - Leadership",
+      "standard": "LD.13.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "373cb80d128b12ce"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_13_01_03",
+    "source_path": "LD - Leadership/LD.13.01.03.md",
+    "genre": "standard",
+    "title": "LD.13.01.03",
+    "text_sha256": "771d1978a74e0f21e4e2ae4ed3d063dedb9b2377eac0e97eb8170a9e4e6b2ca3",
+    "char_count": 8343,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "LD - Leadership",
+      "standard": "LD.13.01.03",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "a30f72aa7a88f912"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_13_01_05",
+    "source_path": "LD - Leadership/LD.13.01.05.md",
+    "genre": "standard",
+    "title": "LD.13.01.05",
+    "text_sha256": "6e37051e2c4c3bf8876f46972762725f470198142cebb5c14f98c62e807e9ea8",
+    "char_count": 4713,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "LD - Leadership",
+      "standard": "LD.13.01.05",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "7393470bd670b85b"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_13_01_07",
+    "source_path": "LD - Leadership/LD.13.01.07.md",
+    "genre": "standard",
+    "title": "LD.13.01.07",
+    "text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "char_count": 0,
+    "metadata": {
+      "content_status": "empty"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_13_01_09",
+    "source_path": "LD - Leadership/LD.13.01.09.md",
+    "genre": "standard",
+    "title": "LD.13.01.09",
+    "text_sha256": "af984a09febbae4a3e2797b9b00e84cd5e11869bbca3a79ac0a6565919ed244d",
+    "char_count": 1581,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "LD - Leadership",
+      "standard": "LD.13.01.09",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "af984a09febbae4a"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_13_02_01",
+    "source_path": "LD - Leadership/LD.13.02.01.md",
+    "genre": "standard",
+    "title": "LD.13.02.01",
+    "text_sha256": "033dec4f85e945632c6851d3e4c817803852241ac0d443480cc338bd47ec6012",
+    "char_count": 2051,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "LD - Leadership",
+      "standard": "LD.13.02.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "0e702c9c34e6b1c6"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_13_03_01",
+    "source_path": "LD - Leadership/LD.13.03.01.md",
+    "genre": "standard",
+    "title": "LD.13.03.01",
+    "text_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "char_count": 0,
+    "metadata": {
+      "content_status": "empty"
+    }
+  },
+  {
+    "doc_id": "ld_leadership_ld_13_03_03",
+    "source_path": "LD - Leadership/LD.13.03.03.md",
+    "genre": "standard",
+    "title": "LD.13.03.03",
+    "text_sha256": "d5ae0378a35bfd839e754e9d3b1be77ac903e68f12b7afa05a30b0ea05a32b81",
+    "char_count": 8925,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "LD - Leadership",
+      "standard": "LD.13.03.03",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "ed9e7634c1dc1791"
+    }
+  },
+  {
+    "doc_id": "nr_nursing_nr_11_01_01",
+    "source_path": "NR - Nursing/NR.11.01.01.md",
+    "genre": "standard",
+    "title": "NR.11.01.01",
+    "text_sha256": "7121792e427dd97b4aec185536a7b0f08f43099af56ebb870c67d602497618a3",
+    "char_count": 1524,
+    "metadata": {
+      "source": "Joint Commission",
+      "document": "Hospital",
+      "chapter": "NR - Nursing",
+      "standard": "NR.11.01.01",
+      "effective_date": "2026-07-01",
+      "version": "2026-07-01",
+      "status": "Active",
+      "last_checked": "2026-07-30",
+      "source_url": "https://publicstandards.tools.jointcommission.org/2.DOMESTIC",
+      "checksum": "1257337758ea3328"
+    }
+  }
+]
