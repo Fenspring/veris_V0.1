@@ -1,0 +1,155 @@
+{
+  "name": "Experiment 0001 — coverage gold set",
+  "created": "2026-08-15",
+  "labeller": "Claude (founding architect agent)",
+  "corpus": "34 hospital policy PDFs + 28 Joint Commission standards",
+  "task": "For each documentation-required Element of Performance, do the supplied policies cover it?",
+  "label_definitions": {
+    "COVERED": "A policy provision substantively satisfies what the EP requires. Must cite evidence.",
+    "PARTIAL": "Some of what the EP requires is addressed; a stated part is not. Must cite evidence AND name what is missing.",
+    "NOT_COVERED": "Nothing in the 34 supplied policies addresses this. Must record the search terms tried, so the absence claim is auditable."
+  },
+  "caveat": "Labelled by the same agent that wrote the pipeline. Founder review is the real control; until then a passing score means 'the pipeline agrees with me', not 'the pipeline is right'. Frozen before the adjudicator was written.",
+  "labels": [
+    {
+      "ep": "EM.09.01.01 EP 1",
+      "label": "PARTIAL",
+      "evidence": ["Emergency Preparedness - Disaster Plan §1", "Emergency Preparedness - Disaster Plan §3"],
+      "missing": "EP requires the program document to include leadership structure and program accountability. The policy establishes risk assessment and EOP content but names no leadership structure or accountable owner.",
+      "notes": "Vocabulary distance: policy says 'all-hazards risk assessment', EP says 'comprehensive emergency management program'."
+    },
+    {
+      "ep": "EM.11.01.01 EP 1",
+      "label": "PARTIAL",
+      "evidence": ["Emergency Preparedness - Disaster Plan §1"],
+      "missing": "EP requires a facility-based HVA covering enumerated hazard categories. The policy requires an all-hazards risk assessment naming five example event types, but does not require the facility-based scope or the full category list.",
+      "notes": "Decoy N3. The term 'hazard vulnerability analysis' never appears in the policy corpus; a lexical matcher cannot find this."
+    },
+    {
+      "ep": "EM.12.01.01 EP 1",
+      "label": "COVERED",
+      "evidence": ["Emergency Preparedness - Disaster Plan §3", "Emergency Preparedness - Disaster Plan §1"],
+      "missing": null,
+      "notes": "Policy explicitly requires an EOP with procedures for evacuation, sheltering, staff roles, continuity."
+    },
+    {
+      "ep": "EM.12.02.01 EP 1",
+      "label": "PARTIAL",
+      "evidence": ["Emergency Preparedness - Disaster Plan §2"],
+      "missing": "EP requires a maintained contact list spanning staff, physicians, volunteers, entities providing services under arrangement, and federal/state/local emergency preparedness staff. Policy requires notification procedures and external agency contact information only.",
+      "notes": null
+    },
+    {
+      "ep": "EM.12.02.03 EP 1",
+      "label": "PARTIAL",
+      "evidence": ["Emergency Preparedness - Disaster Plan §3"],
+      "missing": "EP requires a staffing plan specific to emergency duration and patient surge. Policy addresses staff roles and volunteer management within the EOP but establishes no emergency/surge staffing plan.",
+      "notes": "Near-miss decoy: 'Staffing and Delivery of Care §1' is a general staffing plan and must NOT be counted as coverage — it does not address emergencies or surge."
+    },
+    {
+      "ep": "EM.12.02.11 EP 4",
+      "label": "NOT_COVERED",
+      "evidence": [],
+      "missing": "Alternate energy sources for temperature maintenance, emergency lighting, fire detection/alarm/extinguishing, and sewage/waste disposal.",
+      "notes": "Searched: alternate energy, emergency power, generator, fuel, utility systems, emergency lighting. 'Environment of Care - Hazardous Materials §4' covers fire prevention, not alternate energy sources."
+    },
+    {
+      "ep": "EM.13.01.01 EP 1",
+      "label": "PARTIAL",
+      "evidence": ["Emergency Preparedness - Disaster Plan §3"],
+      "missing": "EP requires a distinct written continuity of operations plan developed with named executive, business, and finance leader participation. Policy mentions continuity of essential services as one EOP procedure only.",
+      "notes": "Labelled PARTIAL rather than NOT_COVERED deliberately: related substance exists, and overstating absence is the failure mode this experiment is built to catch."
+    },
+    {
+      "ep": "EM.15.01.01 EP 2",
+      "label": "NOT_COVERED",
+      "evidence": [],
+      "missing": "Initial emergency management education and training for new and existing staff, contractors, and volunteers, covering EOP activation, communications plan, evacuation/shelter/lockdown/surge, and resource acquisition.",
+      "notes": "Strong decoy. 'Emergency Preparedness - Disaster Plan §4' is titled 'Training and Testing' and will rank first lexically, but its content is exercise testing twice annually — not initial staff education. Counting it as coverage is a false positive."
+    },
+    {
+      "ep": "EM.16.01.01 EP 2",
+      "label": "COVERED",
+      "evidence": ["Emergency Preparedness - Disaster Plan §4"],
+      "missing": null,
+      "notes": "Two exercises annually, one full-scale, community partners involved. Close match in both substance and vocabulary."
+    },
+    {
+      "ep": "EM.17.01.01 EP 1",
+      "label": "PARTIAL",
+      "evidence": ["Emergency Preparedness - Disaster Plan §5"],
+      "missing": "EP assigns review and evaluation to a multidisciplinary committee overseeing the emergency management program. Policy requires after-action review and EOP update but names no committee or oversight body.",
+      "notes": null
+    },
+    {
+      "ep": "IC.04.01.01 EP 3",
+      "label": "COVERED",
+      "evidence": ["Infection Control and Prevention §1", "Infection Control and Prevention §2", "Infection Control and Prevention §4"],
+      "missing": null,
+      "notes": "B0 failure case: BM25's top three are Hazardous Materials, Antibiotic Stewardship, and Workplace Violence. The correct policy does not appear at all."
+    },
+    {
+      "ep": "IC.04.01.01 EP 4",
+      "label": "COVERED",
+      "evidence": ["Infection Control and Prevention §3"],
+      "missing": null,
+      "notes": "Vocabulary aligns closely; B0 ranks this first by a wide margin. Included as a case where lexical retrieval should succeed."
+    },
+    {
+      "ep": "IC.06.01.01 EP 5",
+      "label": "PARTIAL",
+      "evidence": ["Infection Control and Prevention §2"],
+      "missing": "EP addresses staff communicable disease exposure: immunization, exposure evaluation and follow-up, and work restrictions for infected staff. Corpus has PPE only; there is no occupational/employee health policy.",
+      "notes": "Corpus infection control is patient-directed; the EP is staff-directed."
+    },
+    {
+      "ep": "LD.13.01.01 EP 7",
+      "label": "NOT_COVERED",
+      "evidence": [],
+      "missing": "Retention of records of source and disposition of all blood units for at least 10 years with prompt retrieval.",
+      "notes": "Searched: retention, record, 10 years, disposition, source, traceability. The Blood and Blood Product Administration policy has no retention provision."
+    },
+    {
+      "ep": "LD.13.01.09 EP 5",
+      "label": "COVERED",
+      "evidence": ["Medication Administration §1", "Medication Administration §3", "Medication Administration §5"],
+      "missing": null,
+      "notes": "Major B0 failure case: BM25's top three are Emergency Preparedness, Blood Bank Inventory, and Informed Consent. The Medication Administration policy — five rights, high-alert double-checks, adverse drug event reporting, P&T oversight — does not appear."
+    },
+    {
+      "ep": "LD.13.01.09 EP 6",
+      "label": "COVERED",
+      "evidence": ["Surgical and Procedural Safety §1", "Surgical and Procedural Safety §4"],
+      "missing": null,
+      "notes": "B0 ranks the correct policy third with a weak score."
+    },
+    {
+      "ep": "LD.13.03.03 EP 1",
+      "label": "NOT_COVERED",
+      "evidence": [],
+      "missing": "A maintained list of all contracted services including scope and nature of services provided.",
+      "notes": "Searched: contracted services, list, inventory, scope, nature, agreement. The Credentialing and Supervision of Contract Staff policy governs credentialing of contract practitioners; it does not require a services inventory. Nearest-neighbour trap: high lexical overlap on 'contract'."
+    },
+    {
+      "ep": "LD.13.03.03 EP 2",
+      "label": "PARTIAL",
+      "evidence": ["Quality Assurance - Performance Improvement (QAPI) §5"],
+      "missing": "EP makes the governing body responsible for all services including contracted services, with assessment and corrective action. Policy establishes governing body oversight of QAPI results generally, not responsibility for contracted services.",
+      "notes": null
+    },
+    {
+      "ep": "LD.11.01.01 EP 2",
+      "label": "NOT_COVERED",
+      "evidence": [],
+      "missing": "Governing body approval of and responsibility for the grievance process, review and resolution of grievances, or written delegation to a grievance committee.",
+      "notes": "Searched: grievance, complaint, governing body, patient concern. The Patient Rights policy contains no grievance provision."
+    },
+    {
+      "ep": "LD.13.01.05 EP 1",
+      "label": "NOT_COVERED",
+      "evidence": [],
+      "missing": "An institutional plan containing an annual operating budget and a three-year capital expenditure plan, reviewed annually.",
+      "notes": "Searched: budget, capital expenditure, institutional plan, financial. No financial planning content exists anywhere in the corpus."
+    }
+  ]
+}
