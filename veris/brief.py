@@ -110,14 +110,47 @@ def expand(question: str, model: Model | None) -> list[str]:
     return queries[:6]
 
 
+# Relevance floor. A hazard-vulnerability-analysis standard surfaced for a
+# question about blood products: BM25 always returns its top k, however weak the
+# match, so a section with nothing relevant in it still fills up.
+#
+# The floor is relative to the best hit in the same role, not absolute. BM25
+# scores scale with query length and term rarity and are not comparable between
+# roles — Elements of Performance are long, policy provisions short — so a fixed
+# cutoff would be too strict for one role and useless for another.
+#
+# Relative alone is not enough: when every hit is noise the best one is still
+# 1.0x itself and survives. ABS_FLOOR catches that case.
+REL_FLOOR = 0.45   # drop hits scoring below this fraction of the role's best
+ABS_FLOOR = 4.0    # ...and drop everything when even the best hit is this weak
+
+
+def apply_floor(hits: list[tuple[Claim, float]]) -> tuple[list[Claim], int]:
+    """Returns kept claims and how many the floor removed.
+
+    The count is returned rather than discarded because this is a mechanism that
+    can cause a false absence, and Discovery 0004 is about what happens to
+    trust-protecting mechanisms whose activation is never measured.
+    """
+    if not hits:
+        return [], 0
+    best = hits[0][1]
+    if best < ABS_FLOOR:
+        return [], len(hits)
+    cutoff = max(ABS_FLOOR, REL_FLOOR * best)
+    kept = [c for c, s in hits if s >= cutoff]
+    return kept, len(hits) - len(kept)
+
+
 def gather(question: str, claims: list[Claim], model: Model | None,
-           per_role: int = 4) -> dict[str, list[Claim]]:
+           per_role: int = 4) -> tuple[dict[str, list[Claim]], dict[str, int]]:
     queries = expand(question, model)
-    found: dict[str, dict[str, tuple[Claim, float]]] = {}
+    kept: dict[str, list[Claim]] = {}
+    filtered: dict[str, int] = {}
     for role, _, _ in SECTIONS:
         pool = [c for c in claims if c.role == role]
         if not pool:
-            found[role] = {}
+            kept[role], filtered[role] = [], 0
             continue
         bm = BM25(pool)
         hits: dict[str, tuple[Claim, float]] = {}
@@ -126,11 +159,9 @@ def gather(question: str, claims: list[Claim], model: Model | None,
                 # Keep a claim's best score across all query formulations.
                 if c.claim_id not in hits or s > hits[c.claim_id][1]:
                     hits[c.claim_id] = (c, s)
-        found[role] = hits
-    return {
-        role: [c for c, _ in sorted(h.values(), key=lambda x: -x[1])[:per_role]]
-        for role, h in found.items()
-    }
+        ranked = sorted(hits.values(), key=lambda x: -x[1])[:per_role]
+        kept[role], filtered[role] = apply_floor(ranked)
+    return kept, filtered
 
 
 def summarise(question: str, claims: list[Claim], model: Model) -> tuple[str, list[str]]:
@@ -160,17 +191,27 @@ def summarise(question: str, claims: list[Claim], model: Model) -> tuple[str, li
 
 def build(question: str, data: Path, model: Model) -> Brief:
     claims = load_claims(data)
-    by_role = gather(question, claims, model)
+    by_role, filtered = gather(question, claims, model)
 
-    sections, cited_claims = [], []
+    sections, cited_claims, flags = [], [], []
     for role, label, absence in SECTIONS:
         got = by_role.get(role, [])
         cited_claims.extend(got)
+        note = ""
+        if not got:
+            # Two different kinds of empty, and saying the stronger one when the
+            # weaker is true would overstate (DESIGN_PRINCIPLES 6). Nothing
+            # connected at all is a fact about the corpus; nothing above the
+            # relevance floor is a fact about this question.
+            note = (f"Nothing in the connected {label.lower()} appears relevant "
+                    f"to this question." if filtered.get(role) else absence)
+        if filtered.get(role):
+            flags.append(f"{role.lower()}_relevance_floor_dropped_{filtered[role]}")
         sections.append(Section(
             role=role, label=label,
             claims=[{"locator": c.locator, "quote": c.quote, "claim_id": c.claim_id}
                     for c in got],
-            absence_note="" if got else absence,
+            absence_note=note,
         ))
 
     # Regulatory intelligence: precomputed findings for the standards this
@@ -185,9 +226,10 @@ def build(question: str, data: Path, model: Model) -> Brief:
                 reg.append({"ep": f["ep"], "verdict": f["verdict"],
                             "missing": f["missing"], "reason": f["reason"]})
 
-    summary, flags = summarise(
+    summary, sum_flags = summarise(
         question, [c for c in cited_claims if c.role in POLICY_ROLES][:6], model
     )
+    flags.extend(sum_flags)
 
     n_docs = len({c.doc_id for c in claims})
     return Brief(

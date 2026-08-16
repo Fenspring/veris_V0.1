@@ -60,10 +60,28 @@ def is_gap(label: str) -> bool:
     return label == "NOT_COVERED"
 
 
-def score(system: str, gold: dict[str, str], pred: dict[str, str]) -> Scores:
+def score(system: str, gold: dict[str, str], pred: dict[str, str],
+          strict: bool = True) -> Scores:
+    """Score predictions against gold.
+
+    With strict=True a gold EP that has no prediction is an error, not a silent
+    default. Defaulting an unadjudicated requirement to COVERED quietly inflates
+    precision by treating "we never looked" as "we found coverage" — which is the
+    reporting equivalent of the false-absence problem this project exists to
+    avoid, pointed the other way.
+    """
+    if strict:
+        unpredicted = [ep for ep in gold if ep not in pred]
+        if unpredicted:
+            raise ValueError(
+                f"{len(unpredicted)} gold EPs have no prediction and would be "
+                f"silently scored as COVERED: {unpredicted[:5]}"
+            )
     tp = fp = fn = tn = 0
     for ep, truth in gold.items():
-        g_gap, p_gap = is_gap(truth), is_gap(pred.get(ep, "COVERED"))
+        if ep not in pred:
+            continue
+        g_gap, p_gap = is_gap(truth), is_gap(pred[ep])
         if g_gap and p_gap:
             tp += 1
         elif p_gap and not g_gap:
@@ -79,7 +97,10 @@ def confusion(gold: dict[str, str], pred: dict[str, str]) -> list[str]:
     """The specific EPs a system got wrong — more useful than an aggregate."""
     out = []
     for ep, truth in gold.items():
-        p = pred.get(ep, "COVERED")
+        if ep not in pred:
+            out.append(f"    NO PREDICTION  {ep:20} gold={truth}")
+            continue
+        p = pred[ep]
         if is_gap(truth) != is_gap(p):
             kind = "FALSE GAP " if is_gap(p) else "MISSED GAP"
             out.append(f"    {kind}  {ep:20} gold={truth:12} pred={p}")

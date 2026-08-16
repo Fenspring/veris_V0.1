@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Screening and medical evaluation of staff for infectious diseases, staff immunizations, staff education on communicable disease, and management of staff with infectious exposures or communicable illnesses.
+REASON: C6 requires training on patient rights and professional boundaries rather than infectious disease, and no provision addresses occupational health screening, immunization, or management of exposed or infectious staff.

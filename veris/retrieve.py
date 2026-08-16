@@ -28,8 +28,17 @@ STOP = set(
     any all each per not no if when where which who whom whose than then there
     here into onto over under about above below between during within without
     hospital patient patients staff care provides provide provided including
-    include includes ensure ensures required requirement requirements""".split()
+    include includes ensure ensures required requirement requirements
+    what how when why who whose whom where does did do done our we us you your
+    have has had would could should tell show give giving get need needs about
+    please explain describe""".split()
 )
+# The interrogatives above matter more than they look. Clinician questions are
+# phrased as questions ("What is our policy on ...?"), and any short provision
+# containing "what" — e.g. a pain-assessment prompt reading "What makes the pain
+# better? What makes it worse?" — scored a spurious match against every question
+# asked, amplified by BM25's length normalisation favouring short documents.
+# Question-frame words are grammar, not subject matter.
 
 
 def tokenize(text: str) -> list[str]:
