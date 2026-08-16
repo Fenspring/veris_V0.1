@@ -125,12 +125,22 @@ REL_FLOOR = 0.45   # drop hits scoring below this fraction of the role's best
 ABS_FLOOR = 4.0    # ...and drop everything when even the best hit is this weak
 
 
-def apply_floor(hits: list[tuple[Claim, float]]) -> tuple[list[Claim], int]:
-    """Returns kept claims and how many the floor removed.
+def triage(hits: list[tuple[Claim, float]]) -> tuple[list[Claim], int]:
+    """Apply the lexical floor. Returns (survivors, dropped-count).
 
-    The count is returned rather than discarded because this is a mechanism that
-    can cause a false absence, and Discovery 0004 is about what happens to
-    trust-protecting mechanisms whose activation is never measured.
+    Survivors go to judgment; the floor does not decide relevance, only which
+    candidates are worth the cost of asking about.
+
+    An earlier version reserved a "borderline" score band and judged only that,
+    keeping anything above a CLEAR_SCORE without asking. It was removed because
+    the boundary could not survive query expansion: scores are the maximum across
+    several generated queries, so expansion inflates them and pushes noise above
+    any absolute cutoff. An Antibiotic Stewardship provision cleared the
+    threshold for a question about central line infections purely because one
+    expansion query mentioned "infection prevention and control program".
+
+    Calibrating one more constant would only have moved the failure. Judging
+    every survivor costs the same single batched call and removes the constant.
     """
     if not hits:
         return [], 0
@@ -142,15 +152,89 @@ def apply_floor(hits: list[tuple[Claim, float]]) -> tuple[list[Claim], int]:
     return kept, len(hits) - len(kept)
 
 
+RELEVANCE_SYSTEM = (
+    "You filter search results. For each candidate, decide whether it actually "
+    "addresses the subject of the clinician's question.\n\n"
+    "A candidate that merely shares wording with the question, or that belongs "
+    "to an unrelated part of hospital operations, does not address it. A "
+    "candidate that addresses the subject in different words does.\n\n"
+    "Keep a candidate when genuinely unsure: wrongly discarding relevant "
+    "knowledge is worse than showing one extra item."
+)
+
+RELEVANCE_TEMPLATE = """QUESTION: {question}
+
+CANDIDATES:
+{candidates}
+
+Reply with one line per candidate, its id then YES or NO, nothing else:
+C1: YES
+C2: NO"""
+
+
+def judge_relevance(question: str, borderline: list[Claim],
+                    model: Model | None) -> tuple[list[Claim], list[str]]:
+    """Ask the model which candidates actually address the question.
+
+    One call for every candidate across every section, so the cost is a single
+    extra call per question regardless of how many survived the floor.
+
+    On any failure — no model, an error, an unparseable reply, a missing id —
+    the candidate is KEPT. Dropping on failure would let an infrastructure
+    problem manufacture a false absence, which is the one outcome this system
+    must not produce silently.
+    """
+    if not borderline:
+        return [], []
+    if model is None:
+        return borderline, ["relevance_judgment_skipped_no_model"]
+
+    parts = []
+    for i, c in enumerate(borderline):
+        body = re.sub(r"\s+", " ", c.quote)[:400]
+        parts.append(f"[C{i+1}] {c.locator}\n{body}")
+    try:
+        raw = model.complete(
+            RELEVANCE_SYSTEM,
+            RELEVANCE_TEMPLATE.format(question=question, candidates="\n\n".join(parts)),
+            max_tokens=200,
+        )
+    except Exception:
+        return borderline, ["relevance_judgment_failed_kept_all"]
+
+    verdicts: dict[int, bool] = {}
+    for line in raw.splitlines():
+        m = re.match(r"\s*\[?C(\d+)\]?\s*[:.\-]?\s*(YES|NO)\b", line.strip(), re.I)
+        if m:
+            verdicts[int(m.group(1))] = m.group(2).upper() == "YES"
+
+    kept, flags = [], []
+    unjudged = 0
+    for i, c in enumerate(borderline):
+        if verdicts.get(i + 1, True):      # absent verdict means keep
+            kept.append(c)
+        if i + 1 not in verdicts:
+            unjudged += 1
+    if unjudged:
+        flags.append(f"relevance_judgment_missing_{unjudged}_verdicts_kept")
+    rejected = len(borderline) - len(kept)
+    if rejected:
+        flags.append(f"relevance_judgment_rejected_{rejected}")
+    return kept, flags
+
+
 def gather(question: str, claims: list[Claim], model: Model | None,
-           per_role: int = 4) -> tuple[dict[str, list[Claim]], dict[str, int]]:
+           per_role: int = 4) -> tuple[dict[str, list[Claim]], dict[str, int], list[str]]:
     queries = expand(question, model)
-    kept: dict[str, list[Claim]] = {}
+
+    ranked_by_role: dict[str, list[Claim]] = {}
     filtered: dict[str, int] = {}
+    candidates: list[Claim] = []
+
     for role, _, _ in SECTIONS:
         pool = [c for c in claims if c.role == role]
         if not pool:
-            kept[role], filtered[role] = [], 0
+            ranked_by_role[role], filtered[role] = [], 0
             continue
         bm = BM25(pool)
         hits: dict[str, tuple[Claim, float]] = {}
@@ -160,8 +244,26 @@ def gather(question: str, claims: list[Claim], model: Model | None,
                 if c.claim_id not in hits or s > hits[c.claim_id][1]:
                     hits[c.claim_id] = (c, s)
         ranked = sorted(hits.values(), key=lambda x: -x[1])[:per_role]
-        kept[role], filtered[role] = apply_floor(ranked)
-    return kept, filtered
+        survived, dropped = triage(ranked)
+        ranked_by_role[role] = [c for c, _ in ranked]
+        filtered[role] = dropped
+        candidates.extend(survived)
+
+    # One judgment call for every candidate that cleared the floor, across all
+    # sections. The floor controls cost; the model decides relevance.
+    survivors, flags = judge_relevance(question, candidates, model)
+    survivor_ids = {c.claim_id for c in survivors}
+    rejected_ids = {c.claim_id for c in candidates} - survivor_ids
+
+    kept: dict[str, list[Claim]] = {}
+    for role in ranked_by_role:
+        allowed = survivor_ids
+        # Rebuild from the ranked list so score order is preserved.
+        kept[role] = [c for c in ranked_by_role[role] if c.claim_id in allowed]
+        filtered[role] += sum(
+            1 for c in ranked_by_role[role] if c.claim_id in rejected_ids
+        )
+    return kept, filtered, flags
 
 
 def summarise(question: str, claims: list[Claim], model: Model) -> tuple[str, list[str]]:
@@ -191,9 +293,9 @@ def summarise(question: str, claims: list[Claim], model: Model) -> tuple[str, li
 
 def build(question: str, data: Path, model: Model) -> Brief:
     claims = load_claims(data)
-    by_role, filtered = gather(question, claims, model)
+    by_role, filtered, flags = gather(question, claims, model)
 
-    sections, cited_claims, flags = [], [], []
+    sections, cited_claims = [], []
     for role, label, absence in SECTIONS:
         got = by_role.get(role, [])
         cited_claims.extend(got)

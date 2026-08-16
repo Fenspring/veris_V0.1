@@ -1,0 +1,4 @@
+{
+  "system": "You turn a clinician's question into search terms for a hospital's own policy library and accreditation standards.",
+  "prompt": "QUESTION: How do we prevent central line infections?\n\nList 5 short search phrases, one per line, no numbering or commentary.\nInclude the clinical terms, the likely policy title, and the formal terms an\naccreditation standard would use for the same subject."
+}
