@@ -15,9 +15,10 @@ are meaningful, stable, and reproducible without a model. It also means a weak
 or absent model cannot corrupt grounding: spans come from a parser, and every
 one is verified against the canonical text before it is returned.
 
-Role assignment is deliberately coarse here. Standards REQUIRE; policies COMMIT.
-The finer distinction between a policy that commits and a procedure that
-operationalizes is not yet needed by any finding, so it is not yet built.
+Roles: standards REQUIRE. Policies either COMMIT (a rule) or OPERATIONALIZE (a
+step-level procedure), taken from the document's own class line — see
+policy_role. Everything the organization authored counts as its own evidence for
+coverage purposes, so POLICY_ROLES is the pool to search.
 """
 
 from __future__ import annotations
@@ -43,6 +44,8 @@ class Claim:
     crosswalk: list[str]  # CFR references asserted by the source
     title: str
 
+
+POLICY_ROLES = ("COMMITS", "OPERATIONALIZES")
 
 CFR_RE = re.compile(r"§+\s?(482\.\d+(?:\([a-z0-9]+\))*)")
 EP_RE = re.compile(r"^### EP (\d+)\s*$", re.M)
@@ -93,6 +96,22 @@ def standard_claims(doc_id: str, standard: str, text: str) -> list[Claim]:
     return claims
 
 
+def policy_role(text: str) -> str:
+    """COMMITS or OPERATIONALIZES, from the document's own class line.
+
+    These policies label themselves: a step-level procedure carries
+    "HOSPITAL CLINICAL POLICY — DETAILED / PROCEDURE" in its header, while a
+    rule-level policy carries "HOSPITAL COMPLIANCE POLICY". Matching on the word
+    "PROCEDURE" alone is too loose — it appears in ordinary titles such as
+    "Procedures for Safe Drug Dispensing" — so the class line is the signal.
+
+    This distinction was deliberately not built until a finding needed it. The
+    clinician brief needs it: "what our rule is" and "how to actually do it" are
+    different questions and belong in different sections.
+    """
+    return "OPERATIONALIZES" if "DETAILED" in text[:200].upper() else "COMMITS"
+
+
 def policy_claims(doc_id: str, policy_title: str, text: str) -> list[Claim]:
     """One claim per numbered provision.
 
@@ -101,6 +120,7 @@ def policy_claims(doc_id: str, policy_title: str, text: str) -> list[Claim]:
     policy owner would recognise and cite, which is the same reason EPs are
     the unit on the standards side.
     """
+    role = policy_role(text)
     lines = text.split("\n")
     # Character offset of the start of each line, for exact spans.
     offsets: list[int] = []
@@ -141,7 +161,7 @@ def policy_claims(doc_id: str, policy_title: str, text: str) -> list[Claim]:
                         claim_id=f"{doc_id}::p{number}",
                         doc_id=doc_id,
                         locator=f"{policy_title} §{number} {title}"[:120],
-                        role="COMMITS",
+                        role=role,
                         quote=quote,
                         char_start=start,
                         char_end=end,

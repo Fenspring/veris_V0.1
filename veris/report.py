@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -135,3 +136,66 @@ if __name__ == "__main__":
     import sys
     p = render(Path("data"), Path(sys.argv[1] if len(sys.argv) > 1 else "data/report.html"))
     print(f"wrote {p}")
+
+
+def render_brief(data: Path, out: Path) -> Path:
+    """The clinician brief. Same progressive disclosure, but organised by what
+    each source does — and showing the sections that are empty."""
+    b = json.loads((data / "brief.json").read_text())
+
+    def cite(c):
+        q = html.escape(c["quote"][:700]).replace("\n", " ")
+        return f"<blockquote><cite>{html.escape(c['locator'])}</cite>{q}</blockquote>"
+
+    secs = ""
+    for s in b["sections"]:
+        if s["claims"]:
+            inner = "".join(cite(c) for c in s["claims"])
+            head = (f"<summary><span class='lab ok'>{len(s['claims'])} connected</span>"
+                    f"<span class='loc'>{html.escape(s['label'])}</span></summary>")
+            secs += f"<details open>{head}<div class='body'>{inner}</div></details>"
+        else:
+            head = ("<summary><span class='lab unk'>nothing connected</span>"
+                    f"<span class='loc'>{html.escape(s['label'])}</span>"
+                    f"<span class='tl'>{html.escape(s['absence_note'])}</span></summary>")
+            secs += (f"<details>{head}<div class='body'><p class='scope'>"
+                     f"{html.escape(s['absence_note'])} This is a statement about what "
+                     f"has been connected to Veris, not about what the organization "
+                     f"possesses.</p></div></details>")
+
+    reg = ""
+    for r in b["regulatory"]:
+        cls, label = STATUS.get(r["verdict"], ("unk", r["verdict"]))
+        miss = (f"<h4>Not addressed by any connected policy</h4><p>{html.escape(r['missing'])}</p>"
+                if r["missing"] else "")
+        reg += (f"<details><summary><span class='lab {cls}'>{label}</span>"
+                f"<span class='loc'>{html.escape(r['ep'])}</span></summary>"
+                f"<div class='body'><p>{html.escape(r['reason'])}</p>{miss}</div></details>")
+    reg_block = (f"<h2>Regulatory intelligence</h2><p class='note'>These findings appear "
+                 f"in no single document. They exist only in the relation between the "
+                 f"accreditation standards and the organization's own policies.</p>{reg}"
+                 if reg else "")
+
+    summary = html.escape(b["summary"])
+    summary = re.sub(r"\[(S\d+)\]", r"<sup class='src'>\1</sup>", summary)
+
+    body = f"""<title>Veris Brief</title>
+<style>{CSS}
+.q{{font-size:1.35rem;font-weight:600;letter-spacing:-.01em;margin:0 0 1.2rem}}
+.sum{{background:var(--card);border:1px solid var(--line);border-radius:10px;
+padding:1.1rem 1.25rem;margin-bottom:1.6rem;font-size:1.02rem}}
+.src{{color:var(--accent);font-size:.68em;font-weight:600;padding-left:.1em}}
+</style>
+<div class="wrap">
+<p class="sub">Veris &middot; clinician brief</p>
+<p class="q">{html.escape(b['question'])}</p>
+<div class="sum">{summary}</div>
+<h2>Connected knowledge</h2>
+{secs}
+{reg_block}
+<p class="scope">Answered across {html.escape(b['scope'])}. Every statement above is
+drawn from a cited extract; sections marked &ldquo;nothing connected&rdquo; describe
+the limits of what Veris has been given.</p>
+</div>"""
+    out.write_text(body, encoding="utf-8")
+    return out

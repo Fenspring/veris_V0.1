@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from eval.score import load_gold, score, confusion  # noqa: E402
-from veris.claims import load_claims  # noqa: E402
+from veris.claims import POLICY_ROLES, load_claims  # noqa: E402
 from veris.ingest import load_canonical  # noqa: E402
 from veris.retrieve import BM25, citation_join, policy_cfr_index  # noqa: E402
 
@@ -24,7 +24,7 @@ data = Path("data")
 gold = load_gold()
 claims = load_claims(data)
 reqs = {c.locator: c for c in claims if c.role == "REQUIRES" and c.expects_document}
-pols = [c for c in claims if c.role == "COMMITS"]
+pols = [c for c in claims if c.role in POLICY_ROLES]
 canon = {
     d["doc_id"]: load_canonical(data, d["doc_id"])
     for d in json.loads((data / "manifest.json").read_text())

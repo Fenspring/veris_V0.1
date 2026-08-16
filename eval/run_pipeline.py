@@ -23,7 +23,7 @@ from eval.score import load_gold, score, confusion  # noqa: E402
 from veris.adjudicate import (  # noqa: E402
     SYSTEM, adjudicate, build_prompt, save,
 )
-from veris.claims import load_claims  # noqa: E402
+from veris.claims import POLICY_ROLES, load_claims  # noqa: E402
 from veris.model import ModelError, call_id, from_env  # noqa: E402
 from veris.retrieve import BM25  # noqa: E402
 
@@ -33,7 +33,7 @@ DATA = Path("data")
 def setup():
     claims = load_claims(DATA)
     reqs = [c for c in claims if c.role == "REQUIRES" and c.expects_document]
-    pols = [c for c in claims if c.role == "COMMITS"]
+    pols = [c for c in claims if c.role in POLICY_ROLES]
     return reqs, pols, BM25(pols)
 
 
