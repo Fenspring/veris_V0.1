@@ -1,0 +1,4 @@
+VERDICT: COVERED
+EVIDENCE: C3, C5
+MISSING: NONE
+REASON: C3 requires sponge, sharps and instrument counts performed and documented to AORN standards at defined points, and C5 requires immediate labelling and chain of custody for surgical specimens, both of which are surgical care policies maintaining recognised standards of practice.

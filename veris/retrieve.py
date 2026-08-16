@@ -42,7 +42,12 @@ class BM25:
     def __init__(self, docs: list[Claim], k1: float = 1.5, b: float = 0.75):
         self.docs = docs
         self.k1, self.b = k1, b
-        self.toks = [tokenize(d.quote) for d in docs]
+        # Index the locator with the body. A provision inherits its subject from
+        # the document it lives in: "Infection Control and Prevention §4
+        # Surveillance & Reporting" is about infection control even though its
+        # text never says so. Indexing the body alone made the correct policy
+        # unreachable for IC.04.01.01 EP 3 and produced a false gap.
+        self.toks = [tokenize(f"{d.locator} {d.quote}") for d in docs]
         self.lens = [len(t) for t in self.toks]
         self.avg = sum(self.lens) / max(len(self.lens), 1)
         self.tf = [Counter(t) for t in self.toks]

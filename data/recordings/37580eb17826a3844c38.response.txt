@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C1, C2, C3, C6
+MISSING: Leadership structure and program accountability, a continuity of operations plan, disaster recovery, and education and training.
+REASON: C3 requires an all-hazards risk assessment, C2 an EOP with response procedures, C1 twice-annual exercises and C6 after-action review, but the program has no defined leadership structure or accountability, no continuity of operations plan, and no staff education component.

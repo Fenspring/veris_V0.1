@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C1, C2
+MISSING: Mobilizing incident command, surge plans, identifying alternate treatment areas, safety and security, and securing information and records.
+REASON: C1 requires an EOP with procedures for evacuation, sheltering in place, staff roles, supply chain and continuity of essential services and C2 a communications plan, but five of the enumerated EOP elements are not addressed anywhere.

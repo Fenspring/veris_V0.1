@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Governing body approval of and responsibility for the grievance process, review and resolution of grievances, determination of practitioner categories eligible for medical staff appointment, appointment of medical staff members, and approval of medical staff bylaws.
+REASON: C5 establishes governing body oversight of QAPI reporting and C6 addresses clinical privileging criteria, but no provision creates a grievance process or any governing body role in medical staff appointment or bylaws.

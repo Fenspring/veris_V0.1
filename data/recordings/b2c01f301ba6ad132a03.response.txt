@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C8
+MISSING: Identification of alternate energy sources specifically for maintaining safe temperatures, emergency lighting, fire detection, extinguishing and alarm systems, and sewage and waste disposal.
+REASON: C8 requires critical utility systems including electrical and HVAC to be maintained, tested and monitored with backup systems operational and documented utility-failure procedures, which addresses the substance in part but does not identify alternate energy sources for the systems enumerated.

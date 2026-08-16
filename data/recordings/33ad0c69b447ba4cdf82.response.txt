@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: An overall institutional plan containing an annual operating budget prepared according to generally accepted accounting principles and a capital expenditure plan covering at least three years.
+REASON: No provision addresses budgeting, capital expenditure or institutional financial planning; the candidates concern transfers, staffing and pressure injury risk assessment.

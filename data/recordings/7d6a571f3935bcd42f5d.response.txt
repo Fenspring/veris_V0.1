@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Screening and medical evaluation of staff for infectious diseases, staff immunizations, staff education on communicable disease, and management of staff with infectious exposures or communicable illnesses.
+REASON: C6 requires hand hygiene by clinical staff and C4 requires training on patient rights, but no provision addresses occupational infectious disease screening, immunization, or management of exposed or ill staff.

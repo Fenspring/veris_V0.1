@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C2, C3, C6
+MISSING: Leadership structure and program accountability, continuity of operations plan, disaster recovery, and program evaluation are not addressed by any provision.
+REASON: The disaster plan requires an all-hazards risk assessment (C2), twice-annual exercises (C3), and an EOP covering evacuation, sheltering, staff roles and continuity of essential services (C6), but establishes no program leadership structure, disaster recovery or program evaluation.

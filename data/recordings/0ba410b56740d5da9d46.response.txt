@@ -1,0 +1,4 @@
+VERDICT: COVERED
+EVIDENCE: C1, C2
+MISSING: NONE
+REASON: C1 requires the program be tested twice annually with at least one full-scale exercise and one additional exercise that may be tabletop, involving community partners, and C2 requires each drill and actual emergency to be documented in an after-action review.

@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Governing body approval of and responsibility for the grievance process, review and resolution of grievances, determination of practitioner categories eligible for medical staff appointment, appointment of medical staff, and approval of medical staff bylaws.
+REASON: C5 addresses clinical privileging criteria but not governing body authority; no provision establishes a grievance process or any governing body role in medical staff appointment or bylaws.

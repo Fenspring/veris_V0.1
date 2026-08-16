@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Initial emergency management education and training for new and existing staff, contracted individuals and volunteers, covering EOP activation and deactivation, the communications plan, emergency response procedures, evacuation, shelter-in-place, lockdown and surge procedures, and how to obtain emergency resources.
+REASON: C7 requires annual nursing competency validation for assigned responsibilities, which is general clinical competency rather than emergency management education, and C4 requires exercises that test the plan rather than training staff on it.

@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Retention of records of the source and disposition of all blood units for at least 10 years with prompt retrieval, and a funded plan to transfer those records if the hospital ceases operation.
+REASON: C1 requires disposition of the blood product to be recorded in the patient's chart for a transfusion reaction, which is episode-level nursing documentation and not a 10-year retrievable source-and-disposition record.

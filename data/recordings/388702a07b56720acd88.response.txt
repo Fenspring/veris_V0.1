@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C1, C2, C3, C5
+MISSING: Documentation within the policies of the hierarchy of references relied on: applicable law and regulation, manufacturers' instructions for use, and nationally recognized evidence-based guidelines such as the CDC Core Infection Prevention and Control Practices.
+REASON: C1, C2, C3 and C5 are written infection prevention policies covering surveillance and reporting, personal protective equipment, isolation, and sterilization, which guide prevention of transmission, but none documents the hierarchy of references on which it is based.

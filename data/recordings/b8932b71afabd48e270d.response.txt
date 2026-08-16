@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: A maintained list of all contracted services including the scope and nature of the services provided.
+REASON: C2 sets credentialing and privileging standards for individual contract practitioners, which is not an inventory of contracted services; no provision requires such a list.

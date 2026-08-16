@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C5
+MISSING: Preventive controls that minimize drug errors before they occur, and identification of the medical staff or the pharmaceutical service as the developer of these policies.
+REASON: C5 requires adverse drug events, near-misses and medication errors to be reported and analysed for root cause, which addresses errors after the fact but establishes no preventive controls or development ownership.

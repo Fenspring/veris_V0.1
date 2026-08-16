@@ -1,0 +1,59 @@
+{
+  "b0_bm25": {
+    "threshold": 25,
+    "accuracy": 0.75,
+    "gap_precision": 0.5714285714285714,
+    "gap_recall": 0.6666666666666666,
+    "false_gaps": 3,
+    "predictions": {
+      "EM.09.01.01 EP 1": "COVERED",
+      "EM.11.01.01 EP 1": "COVERED",
+      "EM.12.01.01 EP 1": "COVERED",
+      "EM.12.02.01 EP 1": "COVERED",
+      "EM.12.02.03 EP 1": "COVERED",
+      "EM.12.02.11 EP 4": "NOT_COVERED",
+      "EM.13.01.01 EP 1": "COVERED",
+      "EM.15.01.01 EP 2": "COVERED",
+      "EM.16.01.01 EP 2": "COVERED",
+      "EM.17.01.01 EP 1": "COVERED",
+      "IC.04.01.01 EP 3": "COVERED",
+      "IC.04.01.01 EP 4": "COVERED",
+      "IC.06.01.01 EP 5": "NOT_COVERED",
+      "LD.13.01.01 EP 7": "NOT_COVERED",
+      "LD.13.01.09 EP 5": "NOT_COVERED",
+      "LD.13.01.09 EP 6": "NOT_COVERED",
+      "LD.13.03.03 EP 1": "NOT_COVERED",
+      "LD.13.03.03 EP 2": "COVERED",
+      "LD.11.01.01 EP 2": "COVERED",
+      "LD.13.01.05 EP 1": "NOT_COVERED"
+    }
+  },
+  "b3_citation_join": {
+    "accuracy": 0.35,
+    "gap_precision": 0.0,
+    "gap_recall": 0.0,
+    "false_gaps": 7,
+    "predictions": {
+      "EM.09.01.01 EP 1": "NOT_COVERED",
+      "EM.11.01.01 EP 1": "NOT_COVERED",
+      "EM.12.01.01 EP 1": "NOT_COVERED",
+      "EM.12.02.01 EP 1": "COVERED",
+      "EM.12.02.03 EP 1": "COVERED",
+      "EM.12.02.11 EP 4": "COVERED",
+      "EM.13.01.01 EP 1": "COVERED",
+      "EM.15.01.01 EP 2": "COVERED",
+      "EM.16.01.01 EP 2": "COVERED",
+      "EM.17.01.01 EP 1": "NOT_COVERED",
+      "IC.04.01.01 EP 3": "COVERED",
+      "IC.04.01.01 EP 4": "NOT_COVERED",
+      "IC.06.01.01 EP 5": "NOT_COVERED",
+      "LD.13.01.01 EP 7": "COVERED",
+      "LD.13.01.09 EP 5": "COVERED",
+      "LD.13.01.09 EP 6": "NOT_COVERED",
+      "LD.13.03.03 EP 1": "COVERED",
+      "LD.13.03.03 EP 2": "COVERED",
+      "LD.11.01.01 EP 2": "COVERED",
+      "LD.13.01.05 EP 1": "COVERED"
+    }
+  }
+}

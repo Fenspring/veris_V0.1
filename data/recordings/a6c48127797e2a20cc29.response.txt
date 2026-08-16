@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C2, C6
+MISSING: An emergency and surge staffing plan covering methods for contacting off-duty staff, acquisition of staff from the organization's other facilities, and use of volunteer or agency staffing during a disaster.
+REASON: C2 requires procedures for notifying staff and C6 addresses staff roles and volunteer management within the EOP, but C1's staffing plan is a routine acuity-based plan that does not address emergencies or surge.

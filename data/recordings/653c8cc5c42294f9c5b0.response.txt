@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Initial emergency management education and training for new and existing staff, contracted individuals and volunteers, covering EOP activation and deactivation, the communications plan, emergency response procedures, evacuation/shelter-in-place/lockdown/surge procedures, and how to obtain emergency resources.
+REASON: C5 concerns practitioner credentialing rather than emergency training, and the remaining provisions describe plan content rather than any education delivered to staff.

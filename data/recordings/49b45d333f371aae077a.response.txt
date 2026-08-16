@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C1
+MISSING: Governing body responsibility for contracted services specifically, assessment that contracted services are provided in a safe and effective manner, and action taken on their quality and performance.
+REASON: C1 requires QAPI results to be reported to the governing body quarterly with oversight and resource allocation, establishing general oversight but saying nothing about contracted services.

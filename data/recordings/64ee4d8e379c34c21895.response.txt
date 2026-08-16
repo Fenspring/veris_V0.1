@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C3
+MISSING: An emergency and surge staffing plan addressing acquisition of staff from the organization's other facilities and use of volunteer or agency staffing during disasters.
+REASON: C3 requires procedures for notifying staff during emergencies, which partly addresses contacting off-duty staff, but C1's staffing plan is a routine acuity-based plan that does not address emergencies, surge, or volunteers.

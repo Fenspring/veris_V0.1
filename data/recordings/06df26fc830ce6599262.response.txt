@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Retention of records of the source and disposition of all blood units for at least 10 years in a manner permitting prompt retrieval, and a fully funded plan to transfer those records if the hospital ceases operation.
+REASON: C7 requires the implicated blood bag, tubing and transfusion record to be returned to the blood bank after a suspected reaction, which is incident handling rather than long-term retention of source and disposition records for all units.

@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: A maintained emergency contact list covering staff, physicians and licensed practitioners, volunteers, other health care organizations, entities providing services under arrangement, community partners, and federal/state/local authorities.
+REASON: None of the provisions establishes an emergency notification contact list; C1, C2 and C4 concern disease reporting, HIPAA breach notification and abuse reporting respectively, which are unrelated reporting duties.

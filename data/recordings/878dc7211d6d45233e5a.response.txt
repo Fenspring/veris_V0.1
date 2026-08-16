@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Written infection prevention and control policies and procedures guiding prevention and control of transmission, and the documented hierarchy of references (law and regulation, manufacturers' instructions, nationally recognized evidence-based guidelines).
+REASON: C1 addresses regulated medical waste and C2 addresses antibiotic stewardship leadership; none of the provisions is an infection prevention and control policy governing transmission of infection.

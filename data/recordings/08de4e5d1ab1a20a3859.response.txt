@@ -1,0 +1,4 @@
+VERDICT: COVERED
+EVIDENCE: C4, C5
+MISSING: NONE
+REASON: C4 requires sponge, sharps and instrument counts performed and documented to AORN standards at defined points in the procedure, and C5 requires immediate sterile-field labelling and chain of custody for surgical specimens, both surgical care policies maintaining recognized standards.

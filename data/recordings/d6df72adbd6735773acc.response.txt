@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C1
+MISSING: A multidisciplinary committee that oversees the emergency management program and reviews after-action reports, and documented improvement plans arising from that review.
+REASON: C1 requires after-action review to be conducted, documented and used to update the EOP within 90 days, but assigns this to no committee and requires no documented improvement plan.

@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C1
+MISSING: Facility-based scope, a community-based risk assessment, separate analyses for other accredited facilities that differ materially, and documentation of the findings.
+REASON: C1 requires an all-hazards risk assessment identifying likely emergency events, which addresses the substance of a hazard vulnerability analysis, but requires neither facility-based scope, community-based input, nor documented findings.

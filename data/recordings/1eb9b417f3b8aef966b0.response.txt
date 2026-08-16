@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C4
+MISSING: A maintained contact list covering staff, physicians and other licensed practitioners, volunteers, other health care organizations, entities providing services under arrangement, and federal, state, tribal, regional and local emergency preparedness authorities.
+REASON: C4 requires the communications plan to hold contact information for external agencies and procedures for notifying staff, but stops short of a maintained contact list spanning the categories the requirement enumerates.

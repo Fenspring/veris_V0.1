@@ -1,3 +1,7 @@
 .venv/
 __pycache__/
 data/canonical/
+data/findings.json
+data/claims.json
+data/manifest.json
+data/report.html

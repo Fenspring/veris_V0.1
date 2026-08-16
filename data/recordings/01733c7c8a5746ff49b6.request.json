@@ -1,0 +1,4 @@
+{
+  "system": "You help search a hospital's policy library. Given an accreditation requirement, name the words a HOSPITAL POLICY on this subject would actually use \u2014 which are usually not the words the requirement uses.",
+  "prompt": "REQUIREMENT:\nThe hospital maintains the following: - Records of the source and disposition of all units of blood and blood components for at least 10 years from the date of disposition in a manner that permits prompt retrieval - A fully funded plan to transfer these records to another hospital or other entity if the hospital ceases operation for any reason **Attributes:** Documentation **Crosswalk:** \u00a7482.27(b)(5)(ii), \u00a7482.27(b)(5)(ii), \u00a7482.27(b)(5)(i), \u00a7482.27(b)(5)(i)\n\nList 4 short search phrases, one per line, no numbering or commentary.\nUse the vocabulary a hospital policy or procedure would use, including the\nlikely title of such a policy. Do not simply repeat the requirement's wording."
+}

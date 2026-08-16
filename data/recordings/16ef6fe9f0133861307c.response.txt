@@ -1,0 +1,4 @@
+VERDICT: NOT_COVERED
+EVIDENCE: NONE
+MISSING: Alternate energy sources for maintaining safe temperatures, emergency lighting, fire detection, extinguishing and alarm systems, and sewage and waste disposal.
+REASON: C3 addresses fire prevention programs and equipment maintenance but not energy supply; no provision requires alternate sources of energy for the systems the requirement enumerates.

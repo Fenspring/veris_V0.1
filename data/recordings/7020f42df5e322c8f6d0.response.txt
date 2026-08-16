@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C1
+MISSING: A distinct written continuity of operations plan, participation of executive, business and finance leaders in developing it, and identification and prioritization of essential business functions.
+REASON: C1 lists continuity of essential services as one required EOP procedure, but no provision establishes a separate COOP or requires the specified leaders to identify and prioritize essential functions.

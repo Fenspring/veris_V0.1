@@ -1,0 +1,4 @@
+VERDICT: PARTIAL
+EVIDENCE: C1
+MISSING: Spaulding classification, EPA-registered disinfectant use parameters, FDA-cleared sterilant and high-level disinfectant requirements, reprocessing cycle documentation and chemical/biological testing, resolution of conflicting manufacturer instructions, immediate-use steam sterilization criteria, and actions on a reprocessing error or failure.
+REASON: C1 requires reusable medical equipment to be decontaminated, cleaned and sterilized or high-level disinfected per manufacturer instructions, which addresses the core obligation but none of the seven enumerated specifics.
