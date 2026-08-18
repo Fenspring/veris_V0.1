@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veris — Healthcare Knowledge Operating System</title>
+<link rel="stylesheet" href="/app/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>◈</text></svg>">
+</head>
+<body>
+
+<div id="landing" class="landing">
+  <div class="landing-inner">
+    <div class="mark">◈ VERIS</div>
+    <h1>Healthcare has plenty of knowledge.<br><span class="dim">It doesn't have one source of truth.</span></h1>
+    <p class="lede">
+      Veris connects the knowledge your organization already has — regulations,
+      accreditation standards, policies, procedures, education, competencies —
+      and turns it into one grounded, continuously aligned knowledge system.
+    </p>
+    <div class="cta-row">
+      <button class="btn primary" data-goto="investigation">See Your Knowledge in Action</button>
+      <button class="btn" data-goto="documents">Analyze One Document</button>
+    </div>
+    <div class="landing-stats" id="landing-stats"></div>
+    <p class="foot">
+      Findings are evidence-backed and scoped. Veris recommends human review; it
+      does not determine regulatory compliance.
+    </p>
+  </div>
+</div>
+
+<div id="shell" class="shell hidden">
+  <nav class="rail">
+    <div class="rail-mark" data-goto="landing">◈ <span>VERIS</span></div>
+    <button class="nav" data-goto="investigation"><span class="ico">⚡</span>Investigation</button>
+    <button class="nav" data-goto="explorer"><span class="ico">◎</span>Knowledge Explorer</button>
+    <button class="nav" data-goto="ask"><span class="ico">✦</span>Ask Veris</button>
+    <button class="nav" data-goto="findings"><span class="ico">⚑</span>Findings</button>
+    <button class="nav" data-goto="documents"><span class="ico">▤</span>Documents</button>
+    <div class="rail-foot">
+      <div id="health" class="health"></div>
+    </div>
+  </nav>
+
+  <main id="main" class="main"></main>
+</div>
+
+<div id="drawer" class="drawer hidden">
+  <div class="drawer-scrim" data-close-drawer></div>
+  <aside class="drawer-panel" id="drawer-panel"></aside>
+</div>
+
+<script src="/app/app.js"></script>
+</body>
+</html>

@@ -11,3 +11,6 @@ data/veris.db
 data/veris.db-wal
 data/veris.db-shm
 data/originals/
+node_modules/
+package-lock.json
+package.json

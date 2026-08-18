@@ -159,3 +159,14 @@ def find_version_pairs(store: Store) -> list[tuple[dict, dict]]:
         for older, newer in zip(versions, versions[1:]):
             pairs.append((older, newer))
     return pairs
+
+
+def superseded_documents(store: Store) -> set[str]:
+    """Document ids replaced by a newer version of the same source.
+
+    A superseded requirement is still knowledge — the graph keeps it so a change
+    can be explained against what it replaced — but it must never be presented
+    as current. Showing a clinician the previous version of a rule alongside the
+    one in force is worse than showing nothing.
+    """
+    return {older["id"] for older, _ in find_version_pairs(store)}
