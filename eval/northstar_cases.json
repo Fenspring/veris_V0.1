@@ -1,0 +1,100 @@
+{
+  "name": "Northstar Health — controlled substance waste",
+  "corpus": "corpus/northstar",
+  "note": "Ground truth declared when the corpus was authored, before any analysis code existed. It tests whether the pipeline finds what was deliberately placed there and, more importantly, declines to find what was deliberately placed to mislead it.",
+  "honesty": "This is a planted-finding suite: it exercises the mechanics end to end but cannot show that the system works on knowledge nobody designed for it. The Joint Commission coverage gold set (eval/gold.json) is the harder test, on real documents.",
+
+  "extraction": {
+    "description": "Each document yields its own published units, and every span must verify byte-for-byte.",
+    "expected_entities": {
+      "NS-CS.02.01_v1": 5,
+      "NS-CS.02.01_v2": 6,
+      "Controlled Substance Management Policy": 4,
+      "Medication Wasting Procedure": 5,
+      "Controlled Substance Safety — Annual Education Module": 4,
+      "RN Controlled Substance Handling Competency": 4,
+      "Controlled Substance Inventory Count Procedure": 3,
+      "Sharps and Regulated Waste Disposal Procedure": 3
+    },
+    "require_all_spans_verified": true
+  },
+
+  "roles": {
+    "description": "Lifecycle role comes from the document's declared type, not from inference.",
+    "expected": {
+      "Controlled Substance Management Policy": "COMMITS",
+      "Medication Wasting Procedure": "OPERATIONALIZES",
+      "Controlled Substance Safety — Annual Education Module": "TEACHES",
+      "RN Controlled Substance Handling Competency": "VALIDATES",
+      "NS-CS.02.01_v2": "REQUIRES"
+    }
+  },
+
+  "change_detection": {
+    "description": "Version 1 to version 2 of the standard.",
+    "expected": {
+      "EP 1": "UNCHANGED",
+      "EP 2": "MODIFIED",
+      "EP 3": "MODIFIED",
+      "EP 4": "UNCHANGED",
+      "EP 5": "UNCHANGED",
+      "EP 6": "ADDED"
+    },
+    "expected_phrases": {
+      "EP 3": { "removed_contains": ["24"], "added_contains": ["4"] },
+      "EP 2": { "added_contains": ["who did not administer the dose", "in real time"] }
+    }
+  },
+
+  "conflicts": {
+    "description": "Organizational statements that cannot both be followed alongside the new requirement.",
+    "expected": [
+      { "requirement": "EP 2", "organizational": "Medication Wasting Procedure §2",
+        "why": "permits the administering nurse to witness; the requirement forbids it" },
+      { "requirement": "EP 2", "organizational": "Medication Wasting Procedure §4",
+        "why": "documents waste by end of shift; the requirement forbids retrospective entry" },
+      { "requirement": "EP 3", "organizational": "Controlled Substance Management Policy §2",
+        "why": "24-hour reconciliation against a 4-hour requirement" },
+      { "requirement": "EP 3", "organizational": "Controlled Substance Safety — Annual Education Module §3",
+        "why": "teaches the superseded 24-hour window" }
+    ]
+  },
+
+  "gaps": {
+    "description": "Requirements with no organizational knowledge providing what they demand.",
+    "expected": [
+      { "requirement": "EP 6", "severity": "HIGH",
+        "why": "newly added quarterly audit and reporting; nothing in the corpus establishes either" }
+    ],
+    "allowed_additional": ["EP 1", "EP 4"],
+    "allowed_additional_note": "Both are defensible: no supplied document governs the return of controlled substances, and the education module is annual with nothing establishing delivery at orientation. Neither is required for a pass."
+  },
+
+  "decoys": {
+    "description": "Documents placed to be attractive to a lexical matcher and wrong for a reader.",
+    "must_not_relate": [
+      { "document": "Sharps and Regulated Waste Disposal Procedure",
+        "why": "shares the word 'waste' throughout, but means regulated medical waste, not controlled substance waste" },
+      { "document": "Controlled Substance Inventory Count Procedure",
+        "why": "shares 'controlled substance' and 'count', but governs vault inventory rather than waste or reconciliation timeframes" }
+    ]
+  },
+
+  "citations": {
+    "description": "Every piece of evidence must be a real span of the document it cites.",
+    "require_exact_span_match": true
+  },
+
+  "effective_dates": {
+    "description": "A superseded version stays in the graph but must never be answered with.",
+    "superseded_version": "1.0",
+    "current_version": "2.0",
+    "must_not_appear_in_answers": true
+  },
+
+  "source_authority": {
+    "description": "Provenance must survive ingestion; a finding whose source has no authority cannot be weighed.",
+    "required_fields": ["publisher", "authority", "effective_date", "version"],
+    "expected_authority": { "NS-CS.02.01_v2": "ACCREDITOR" }
+  }
+}
