@@ -1,0 +1,11 @@
+O1: ALIGNED | MEDIUM | The competency validates correct retrieval of the ordered dose and is designated for validation at orientation.
+O2: ALIGNED | HIGH | The competency validates obtaining a second licensed witness before discarding, by direct observation at orientation.
+O3: ALIGNED | HIGH | The competency validates recording waste in the automated dispensing cabinet.
+O4: ALIGNED | MEDIUM | The competency validates the discrepancy escalation pathway.
+O5: UNRELATED | LOW | An education objective delivers instruction rather than validating competency.
+O6: UNRELATED | LOW | An education objective delivers instruction rather than validating competency.
+O7: UNRELATED | LOW | An education objective delivers instruction rather than validating competency.
+O8: UNRELATED | LOW | An education objective delivers instruction rather than validating competency.
+O9: UNRELATED | LOW | A policy statement does not validate individual competency.
+O10: UNRELATED | LOW | A policy statement does not validate individual competency.
+GAP: NONE

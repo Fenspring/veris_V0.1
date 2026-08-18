@@ -1,0 +1,11 @@
+O1: ALIGNED | LOW | Retaining the unused portion until a witness is available is consistent with real-time witnessing.
+O2: CONFLICTS | HIGH | Procedure §2 permits any licensed staff member present to witness, expressly including the nurse who administered the dose, which the requirement now prohibits.
+O3: UNRELATED | LOW | Discard location does not address who witnesses the waste or when it is documented.
+O4: CONFLICTS | HIGH | Procedure §4 directs staff to record the waste before the end of the shift, and the requirement states that retrospective end-of-shift documentation does not satisfy it.
+O5: UNRELATED | LOW | Discrepancy escalation does not address witnessing or waste documentation timing.
+O6: PARTIAL | MEDIUM | The module teaches that a second licensed witness must directly observe the discard but does not teach that the witness cannot be the administering nurse.
+O7: PARTIAL | MEDIUM | The module teaches documenting waste in the cabinet but does not teach that it must be entered at the time the waste occurs.
+O8: UNRELATED | LOW | Discrepancy response is a different subject.
+O9: UNRELATED | LOW | Diversion awareness is a different subject.
+O10: PARTIAL | HIGH | Policy §1 requires a second licensed person to verify the amount discarded but does not exclude the person who administered the dose.
+GAP: NONE

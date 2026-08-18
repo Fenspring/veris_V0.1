@@ -1,0 +1,11 @@
+O1: UNRELATED | LOW | Teaching two-person waste does not audit waste documentation.
+O2: UNRELATED | LOW | Teaching documentation does not audit it.
+O3: UNRELATED | LOW | Discrepancy response is a different subject.
+O4: UNRELATED | LOW | Diversion awareness is a different subject.
+O5: UNRELATED | LOW | Sharps container practice concerns regulated medical waste, not controlled substances.
+O6: UNRELATED | LOW | Regulated medical waste segregation is a different waste stream.
+O7: UNRELATED | LOW | Monthly reconciliation of hauler manifests covers regulated medical waste tonnage, not controlled substance waste documentation, and reports to no medication safety committee.
+O8: UNRELATED | LOW | Performing waste is not auditing waste documentation.
+O9: UNRELATED | LOW | Obtaining a witness is not auditing waste documentation.
+O10: UNRELATED | LOW | Discarding waste is not auditing waste documentation.
+GAP: A recurring audit of controlled substance waste documentation performed at least quarterly, and reporting of the audit results to the committee responsible for medication safety. No supplied policy, procedure, education module or competency establishes either the audit or the reporting route.

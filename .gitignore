@@ -7,3 +7,7 @@ data/manifest.json
 data/report.html
 data/brief.json
 data/brief.html
+data/veris.db
+data/veris.db-wal
+data/veris.db-shm
+data/originals/

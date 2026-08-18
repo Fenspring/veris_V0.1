@@ -1,0 +1,11 @@
+O1: ALIGNED | MEDIUM | The annual module teaches controlled substance waste witnessing.
+O2: ALIGNED | MEDIUM | The annual module teaches waste documentation.
+O3: ALIGNED | MEDIUM | The annual module teaches discrepancy response.
+O4: ALIGNED | MEDIUM | The annual module teaches diversion awareness.
+O5: UNRELATED | LOW | A competency criterion validates practice; it does not deliver education.
+O6: UNRELATED | LOW | A competency criterion validates practice; it does not deliver education.
+O7: UNRELATED | LOW | A competency criterion validates practice; it does not deliver education.
+O8: UNRELATED | LOW | A competency criterion validates practice; it does not deliver education.
+O9: UNRELATED | LOW | Biennial vault inventory is a different subject.
+O10: UNRELATED | LOW | Perpetual inventory records are a different subject.
+GAP: Education delivered at orientation — the supplied module is designated annual, and no supplied document establishes that controlled substance education is provided to staff at orientation before they administer controlled substances.

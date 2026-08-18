@@ -1,0 +1,11 @@
+O1: UNRELATED | LOW | Waste verification does not address count discrepancy reconciliation.
+O2: CONFLICTS | HIGH | Policy §2 requires reconciliation within 24 hours, and the requirement now allows 4 hours.
+O3: UNRELATED | LOW | Storage control does not address reconciliation timeframes.
+O4: UNRELATED | LOW | Procurement and receipt does not address reconciliation timeframes.
+O5: UNRELATED | LOW | Two-person waste is a different subject.
+O6: UNRELATED | LOW | Waste documentation is a different subject.
+O7: CONFLICTS | HIGH | The education module teaches staff that discrepancies must be reconciled within 24 hours, which contradicts the 4-hour requirement.
+O8: UNRELATED | LOW | Diversion awareness is a different subject.
+O9: UNRELATED | LOW | Sharps container disposal concerns regulated medical waste, not controlled substance counts.
+O10: UNRELATED | LOW | Regulated medical waste segregation is a different waste stream and unrelated to controlled substance reconciliation.
+GAP: NONE

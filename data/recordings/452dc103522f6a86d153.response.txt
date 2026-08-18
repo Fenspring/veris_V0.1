@@ -1,0 +1,11 @@
+O1: ALIGNED | MEDIUM | Policy §1 governs the wasting of controlled substances, one of the activities the requirement enumerates.
+O2: PARTIAL | LOW | Count discrepancy reconciliation is adjacent governance but is not one of the activities the requirement enumerates.
+O3: ALIGNED | HIGH | Policy §3 governs storage in double-locked automated dispensing cabinets.
+O4: ALIGNED | HIGH | Policy §4 governs procurement and receipt by pharmacy personnel.
+O5: ALIGNED | MEDIUM | Procedure §1 governs preparation of the dose and retention of the unused portion before wasting.
+O6: ALIGNED | MEDIUM | Procedure §2 governs who may witness the waste.
+O7: ALIGNED | MEDIUM | Procedure §3 governs how the unused portion is discarded.
+O8: ALIGNED | MEDIUM | Procedure §4 governs how waste is recorded.
+O9: PARTIAL | LOW | Discrepancy resolution supports controlled substance governance without covering an enumerated activity.
+O10: UNRELATED | LOW | An education objective is not a written policy or procedure governing these activities.
+GAP: Written governance of the return of controlled substances — no supplied policy or procedure addresses returning unused or expired controlled substances to the pharmacy or to a reverse distributor.
