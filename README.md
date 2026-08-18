@@ -2,12 +2,21 @@
 
 **The healthcare knowledge operating system.**
 
-Healthcare organizations already have the knowledge they need. It lives in
-regulations, accreditation standards, policies, procedures, education modules
-and competencies — each individually correct, and each read in isolation.
+**Every hospital already has the knowledge.** It lives in regulations,
+accreditation standards, policies, procedures, education modules and
+competencies. Each document is written carefully. Each one is read alone. An
+organization can be misaligned while every document in it is correct.
 
-Veris is the intelligence layer that connects them. The hospital owns the
-knowledge; Veris owns the connections.
+Veris holds no knowledge of its own and replaces none of it. It is the
+intelligence layer that connects what the organization already owns, and reports
+what those connections mean.
+
+> **The hospital owns the knowledge. Veris owns the connections.**
+
+That division is enforced in the product, not only stated. Every claim Veris
+makes cites a byte-verified span of a document the organization supplied, and
+the *Your Knowledge* view reports what has been connected, what has not, and
+what Veris therefore cannot yet tell you.
 
 ```
 A standard changes  →  what changed  →  what it touches  →  where the gaps
@@ -52,8 +61,15 @@ Every finding names the evidence it rests on, the scope it was established over,
 and whether it is a source fact, a Veris interpretation, a model inference, or a
 human decision.
 
-### The four surfaces
+### The surfaces
 
+- **Your Knowledge** — what the organization has connected, across the six roles
+  knowledge plays: what requires, commits, operationalizes, teaches, validates
+  and measures. Unfilled roles are shown with what their absence costs — the
+  demo corpus has no audit tooling connected, so Veris says plainly that it
+  cannot tell you whether any of this is working in practice. The thesis made
+  measurable: what Veris adds is proportional to how much of what you already
+  own has been connected.
 - **Investigation** — a change, what it touches, findings ranked by severity,
   evidence on every claim, and a review decision.
 - **Knowledge Explorer** — select any item and see its neighbourhood: what

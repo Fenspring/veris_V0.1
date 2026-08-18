@@ -344,6 +344,93 @@ def run_analysis(req: AnalyzeRequest) -> dict:
     return analyze_source_version(store, req.document_id, model)
 
 
+
+# --- what the organization has connected --------------------------------------
+
+# Veris holds no knowledge of its own. Every role below is filled by something
+# the organization already had; an empty role is not a defect in Veris but a
+# statement about what it has been given — and about what it therefore cannot
+# yet say. Naming that second part is the honest half, and the useful one: it
+# tells an organization what connecting more would actually buy them.
+LIFECYCLE_VIEW = [
+    ("REQUIRES", "What we are required to do",
+     "Regulations, accreditation standards, government and professional requirements",
+     "Without a connected requirement, Veris cannot tell you what any of your "
+     "knowledge is accountable to."),
+    ("COMMITS", "What we have decided to do",
+     "Policies — the organization's own stated rules",
+     "Without connected policy, Veris cannot tell you what the organization has "
+     "committed to in response to a requirement."),
+    ("OPERATIONALIZES", "How it is actually done",
+     "Procedures, protocols, workflows, order sets",
+     "Without connected procedures, Veris cannot tell you whether what is written "
+     "matches what is practised."),
+    ("TEACHES", "How people learn it",
+     "Education modules, orientation, in-service training",
+     "Without connected education, Veris cannot tell you whether staff are taught "
+     "what the policy requires — or whether they are still being taught something "
+     "a standard has since changed."),
+    ("VALIDATES", "How competence is verified",
+     "Competencies, skills validation, credentialing",
+     "Without connected competencies, Veris cannot tell you whether anyone has "
+     "confirmed that staff can actually do what is required."),
+    ("MEASURES", "How we know it is happening",
+     "Audit tools, quality metrics, tracers, dashboards",
+     "Without connected measurement, Veris cannot tell you whether any of this "
+     "is working in practice."),
+]
+
+
+@app.get("/api/v1/coverage")
+def coverage() -> dict:
+    """Connection coverage across the obligation lifecycle.
+
+    The product thesis made measurable: the organization already owns every
+    piece of this, and the value Veris adds is proportional to how much of it
+    has been connected.
+    """
+    rows = store.q("""
+        SELECT e.role,
+               COUNT(*) AS entities,
+               COUNT(DISTINCT e.document_id) AS documents
+        FROM entities e GROUP BY e.role""")
+    by_role = {r["role"]: r for r in rows}
+
+    linked = store.q("""
+        SELECT e.role, COUNT(DISTINCT e.id) AS connected
+        FROM entities e
+        JOIN relationships r ON r.from_entity_id = e.id OR r.to_entity_id = e.id
+        GROUP BY e.role""")
+    connected = {r["role"]: r["connected"] for r in linked}
+
+    out = []
+    for role, label, examples, absence in LIFECYCLE_VIEW:
+        row = by_role.get(role, {})
+        entities = row.get("entities", 0)
+        out.append({
+            "role": role,
+            "label": label,
+            "examples": examples,
+            "documents": row.get("documents", 0),
+            "entities": entities,
+            "connected_entities": connected.get(role, 0),
+            "present": entities > 0,
+            "absence_note": "" if entities else absence,
+        })
+
+    total_docs = store.q("SELECT COUNT(*) n FROM documents")[0]["n"]
+    return {
+        "lifecycle": out,
+        "documents": total_docs,
+        "relationships": store.q("SELECT COUNT(*) n FROM relationships")[0]["n"],
+        "roles_present": sum(1 for r in out if r["present"]),
+        "roles_total": len(out),
+        "owned_by": store.q(
+            "SELECT publisher, COUNT(*) n FROM sources WHERE publisher IS NOT NULL"
+            " GROUP BY publisher ORDER BY n DESC"),
+    }
+
+
 @app.get("/api/v1/overview")
 def overview() -> dict:
     """Everything the workspace needs for a first paint, in one round trip."""

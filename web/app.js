@@ -381,15 +381,64 @@ async function findingsView() {
 
 async function documentsView() {
   const main = $('#main');
-  main.innerHTML = `<h2 class="page">Connected knowledge</h2>
-    <p class="page-sub">Everything the organization has connected to Veris. The hospital
-    owns the knowledge; Veris holds the connections.</p>
-    <div class="card"><div class="card-body" style="border:0;padding:1.1rem">
-      <div class="field"><label>Add a document (PDF, DOCX, Markdown, TXT — max 25 MB)</label>
+  main.innerHTML = `<h2 class="page">Your knowledge</h2>
+    <p class="page-sub">Veris holds no knowledge of its own. Everything below already
+    belonged to the organization — Veris connects it and reports what the connections
+    mean.</p><div class="spinner">Loading…</div>`;
+
+  const cov = await api('/coverage');
+  const owners = cov.owned_by.map(o => o.publisher).filter(Boolean);
+  main.innerHTML = `<h2 class="page">Your knowledge</h2>
+    <p class="page-sub">Veris holds no knowledge of its own. Everything below already
+    belonged to the organization — Veris connects it and reports what the connections
+    mean.</p>`;
+
+  main.append(el('div', 'tiles', `
+    <div class="tile"><b>${cov.documents}</b><span>documents supplied</span></div>
+    <div class="tile"><b>${cov.relationships}</b><span>connections Veris made</span></div>
+    <div class="tile"><b>${cov.roles_present}/${cov.roles_total}</b><span>knowledge roles filled</span></div>`));
+
+  if (owners.length) main.append(el('div', 'prov', `Sourced from ${owners.map(esc).join(' · ')}`));
+
+  // The lifecycle strip. An unfilled role is not a defect in Veris — it is a
+  // statement about what Veris has been given, and about what it therefore
+  // cannot yet say.
+  main.append(el('h4', 'sec', 'Across the knowledge lifecycle'));
+  for (const r of cov.lifecycle) {
+    const c = el('div', 'card');
+    if (r.present) {
+      c.append(el('div', 'card-head', `
+        <span class="badge b-low">${r.entities} connected</span>
+        <div style="flex:1">
+          <div class="title">${esc(r.label)}</div>
+          <div class="meta">${esc(r.examples)}</div>
+          <div class="meta">${r.documents} document${r.documents === 1 ? '' : 's'} ·
+            ${r.connected_entities} of ${r.entities} items linked to something else</div>
+        </div>`));
+    } else {
+      c.append(el('div', 'card-head', `
+        <span class="badge b-neutral">not connected</span>
+        <div style="flex:1">
+          <div class="title" style="color:var(--mut)">${esc(r.label)}</div>
+          <div class="meta">${esc(r.examples)}</div>
+          <div class="stmt" style="color:var(--med)">${esc(r.absence_note)}</div>
+        </div>`));
+    }
+    main.append(c);
+  }
+
+  main.append(el('h4', 'sec', 'Add knowledge you already have'));
+  main.append(el('div', 'card', `<div class="card-body" style="border:0;padding:1.1rem">
+      <div class="field"><label>PDF, DOCX, Markdown or TXT — max 25 MB</label>
       <input type="file" id="upl" accept=".pdf,.docx,.md,.markdown,.txt"></div>
-      <button class="btn sm primary" onclick="upload()">Ingest</button>
-      <span id="upl-msg" class="meta"></span></div></div>
-    <div id="doclist"><div class="spinner">Loading…</div></div>`;
+      <button class="btn sm primary" onclick="upload()">Connect</button>
+      <span id="upl-msg" class="meta"></span>
+      <div class="scope" style="margin-top:.7rem">Veris stores the original, freezes the
+      extracted text and hashes it. Nothing is rewritten, and every citation points back
+      into your document.</div></div>`));
+
+  main.append(el('h4', 'sec', `Documents connected (${cov.documents})`));
+  main.append(el('div', '', '<div id="doclist"><div class="spinner">Loading…</div></div>'));
   await renderDocs();
 }
 
@@ -435,7 +484,7 @@ window.upload = async () => {
     msg.textContent = d.already_present
       ? `Already connected: ${d.title}`
       : `Connected ${d.title} — ${d.entities} knowledge items extracted.`;
-    await renderDocs();
+    await documentsView();
   } catch (e) { msg.textContent = 'Failed: ' + e.message; }
 };
 
@@ -446,11 +495,13 @@ window.upload = async () => {
     const h = await api('/health');
     $('#health').innerHTML = `<b>●</b> ${esc(h.status)}<br>model: ${esc(h.model)}<br>auth: ${esc(h.auth)}`;
     const c = h.counts;
+    // Labelled to make the division of labour explicit: the organization
+    // supplied the first two, Veris produced the last two.
     $('#landing-stats').innerHTML = `
-      <div><b>${c.documents}</b><span>documents</span></div>
-      <div><b>${c.entities}</b><span>knowledge items</span></div>
-      <div><b>${c.relationships}</b><span>relationships</span></div>
-      <div><b>${c.findings}</b><span>findings</span></div>`;
+      <div><b>${c.documents}</b><span>documents you supplied</span></div>
+      <div><b>${c.entities}</b><span>knowledge items in them</span></div>
+      <div><b>${c.relationships}</b><span>connections Veris made</span></div>
+      <div><b>${c.findings}</b><span>findings in the connections</span></div>`;
   } catch (e) {
     $('#health').textContent = 'API unavailable';
   }
