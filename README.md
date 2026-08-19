@@ -63,6 +63,13 @@ human decision.
 
 ### The surfaces
 
+- **Connections** — connect the systems you already use. Built entirely from
+  connector registry metadata, so adding an integration adds no dashboard code.
+  Vendors that are not implemented yet are listed, explained, and refuse to
+  connect: showing a Connect button that silently does nothing would be worse
+  than omitting the vendor.
+- **Agents** — modular reasoning over everything connected. An agent that needs
+  a system you have not connected says so rather than guessing.
 - **Your Knowledge** — what the organization has connected, across the six roles
   knowledge plays: what requires, commits, operationalizes, teaches, validates
   and measures. Unfilled roles are shown with what their absence costs — the
@@ -80,6 +87,32 @@ human decision.
 - **Findings** — everything awaiting a human decision.
 
 ---
+
+## Connect your systems
+
+```bash
+python -m veris.cli seed      # connects the demo LMS, policy system and standards feed
+```
+
+Veris ships with demo connectors so the whole product is demonstrable before any
+vendor credential exists. They are labelled `demo data` everywhere and implement
+the same interface as real connectors, passing the same contract tests.
+
+Real integrations are declared in the catalogue — HealthStream, Relias,
+Cornerstone, PolicyStat, PowerDMS, CMS, The Joint Commission and others — with
+what each will need. Until one is implemented, **file import works today**: most
+systems can produce an export even when their API is closed, and Veris maps the
+columns for you and asks only about what it could not place.
+
+Credentials go to the operating system keychain and nowhere else. There is no
+encrypted-file fallback — see `SECURITY.md` for why that is deliberate.
+
+## Desktop
+
+`desktop/` holds a Tauri shell that supervises the core as a packaged sidecar,
+so the customer installs one signed binary and no development tools. It is
+**scaffolded but not built**: this environment lacks the platform toolchains.
+See `desktop/README.md` and `docs/decisions/0007`.
 
 ## Configure
 
@@ -172,9 +205,14 @@ Interactive documentation at `/docs`.
 ## Test and evaluate
 
 ```bash
-make test    # retrieval regression tests
-make eval    # 49 checks across ten capabilities
+make test    # connector contract tests + retrieval regression
+make eval    # 49 checks across ten intelligence capabilities
 ```
+
+Every connector — mock or real — must pass the same 20 contract tests: read-only
+by construction, idempotent re-sync, checkpointing, retry and backoff, per-record
+failure isolation, credential safety, error redaction, and tolerance of records
+arriving out of order.
 
 The evaluation covers extraction, lifecycle roles, change detection, conflict
 detection, gap detection, false positives on decoys, citation accuracy,
@@ -221,21 +259,27 @@ a claim of HIPAA compliance.
 
 ---
 
+## Documentation
+
+`ARCHITECTURE.md` · `CONNECTORS.md` · `DATA_MODEL.md` · `SECURITY.md` ·
+`AGENTS.md` · `DEVELOPMENT.md` · `docs/connectors/`
+
 ## How it is built
 
 ```
-web/            static workspace — no build step
+desktop/        Tauri shell (scaffolded) — installer, keychain, supervises the core
+web/            static workspace — no build step, one bundle for both deployments
   ↕ HTTP
 veris/api.py    FastAPI — the product boundary
   ↕
-veris/ask · analyze · changes · seed          intelligence services
+veris/agents · ask · analyze · changes        intelligence services
   ↕
-veris/store.py  SQLite domain model: sources, documents, entities, evidence,
-                relationships, changes, findings, reviews
+veris/store.py  domain model: sources, documents, entities, evidence,
+                relationships, changes, findings, reviews, connections, records
   ↕
-veris/pipeline · extract · retrieve           ingestion and candidate generation
+veris/sync.py · connectors/                   connection layer, read-only
   ↕
-veris/model.py  provider-agnostic inference (stdlib HTTP, no vendor SDK)
+veris/model.py  provider-agnostic inference · credentials.py OS keychain
 ```
 
 Relationships are rows, not inferences recomputed per request, which is what

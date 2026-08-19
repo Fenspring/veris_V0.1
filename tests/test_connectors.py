@@ -19,12 +19,15 @@ from veris.connectors.base import (  # noqa: E402
     AUTH_METHODS, CATEGORIES, Connector, ConnectorError, RateLimited,
     SyncPage, TransientError, registry,
 )
+from veris.connectors.catalog import map_columns, register_catalog  # noqa: E402
 from veris.connectors.mock import register_mocks  # noqa: E402
 from veris.store import Store  # noqa: E402
 from veris.sync import SyncEngine, _redact  # noqa: E402
 
 register_mocks()
-ALL = [i.id for i in registry.all()]
+register_catalog()
+ALL = [i.id for i in registry.available()
+       if i.id not in ("file_import",)]  # file import needs a file
 
 
 def _store() -> Store:
@@ -264,6 +267,65 @@ def test_rate_limit_backs_off_rather_than_hammering():
     rep = engine.run(r["connection_id"])
     assert rep.status == "SUCCEEDED"
     assert waits and waits[0] == 7.0, f"vendor retry hint ignored: {waits}"
+
+
+def test_planned_connectors_are_declared_but_refuse_to_connect():
+    """Showing a vendor next to a Connect button that silently does nothing is
+    worse than not listing it. Never fake an integration."""
+    planned = [i for i in registry.all() if i.availability == "planned"]
+    assert planned, "the catalogue should declare what is coming"
+    for info in planned:
+        assert info.setup_note, f"{info.id} gives the customer no explanation"
+        try:
+            registry.create(info.id)
+            raise AssertionError(f"{info.id} allowed a connection while planned")
+        except ConnectorError:
+            pass
+
+
+def test_file_import_maps_columns_and_asks_about_the_rest():
+    mapping, unmapped = map_columns(
+        ["Employee ID", "Course ID", "Completion Status", "Date Completed",
+         "Cost Center", "Widget Score"])
+    assert mapping["person_external_id"] == "Employee ID"
+    assert mapping["status"] == "Completion Status"
+    assert mapping["department"] == "Cost Center"
+    assert unmapped == ["Widget Score"], unmapped
+
+
+def test_completion_rows_do_not_collide_without_an_id_column():
+    csv_text = ("Employee ID,Course ID,Completion Status\n"
+                "E1,C1,COMPLETED\nE2,C1,COMPLETED\nE1,C2,OVERDUE\n")
+    c = registry.create("file_import",
+                        {"content": csv_text, "record_type": "completion"})
+    c.authenticate({})
+    records = list(c.sync())[0].records
+    ids = [r["external_id"] for r in records]
+    assert len(set(ids)) == 3, f"rows collapsed onto each other: {ids}"
+
+
+def test_references_tolerate_arrival_order():
+    """A completions export may arrive before the roster, or the people may be
+    in a different system. Dropping the rows would lose data over timing."""
+    import json as _json
+    store = _store()
+    engine = SyncEngine(store, sleep=lambda s: None)
+    comp = "Employee ID,Course ID,Completion Status\nE1,C1,COMPLETED\n"
+    r = engine.connect("file_import",
+                       config={"content": comp, "record_type": "completion"})
+    engine.run(r["connection_id"])
+    assert store.stats()["completions"] == 1, "completion discarded for arriving first"
+    assert store.q("SELECT COUNT(*) n FROM completions WHERE person_id IS NULL")[0]["n"] == 1
+
+    roster = "id,name,role\nE1,Alice,Registered Nurse\n"
+    store.db.execute("UPDATE connections SET config=? WHERE id=?",
+                     (_json.dumps({"content": roster, "record_type": "person"}),
+                      r["connection_id"]))
+    store.commit()
+    engine.run(r["connection_id"])
+    unresolved = store.q(
+        "SELECT COUNT(*) n FROM completions WHERE person_id IS NULL")[0]["n"]
+    assert unresolved == 0, "reference did not resolve once the roster arrived"
 
 
 if __name__ == "__main__":

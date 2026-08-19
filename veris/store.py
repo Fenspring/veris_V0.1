@@ -80,7 +80,7 @@ CONNECTION_STATES = (
 )
 CONNECTOR_CATEGORIES = ("LMS", "POLICY", "REGULATORY", "IDENTITY", "DOCUMENT", "EVIDENCE")
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA = """
 PRAGMA journal_mode=WAL;
@@ -328,8 +328,14 @@ CREATE TABLE IF NOT EXISTS completions (
     id            TEXT PRIMARY KEY,
     connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
     external_id   TEXT NOT NULL,
-    person_id     TEXT REFERENCES people(id) ON DELETE CASCADE,
-    course_id     TEXT REFERENCES courses(id) ON DELETE CASCADE,
+    -- Internal ids are resolved when the other side of the reference exists.
+    -- They stay NULL until then: a completions export may arrive before the
+    -- roster, or the people may live in a different system entirely, and
+    -- refusing the row would discard data over arrival order.
+    person_id     TEXT REFERENCES people(id) ON DELETE SET NULL,
+    course_id     TEXT REFERENCES courses(id) ON DELETE SET NULL,
+    person_external_id TEXT,
+    course_external_id TEXT,
     status        TEXT,                 -- COMPLETED | ASSIGNED | OVERDUE | EXEMPT
     completed_at  TEXT,
     due_at        TEXT,

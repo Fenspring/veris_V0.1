@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Veris",
+  "version": "0.1.0",
+  "identifier": "health.veris.desktop",
+  "build": {
+    "frontendDist": "../../web"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Veris",
+        "width": 1440,
+        "height": 960,
+        "minWidth": 1100,
+        "minHeight": 700,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://127.0.0.1:*; style-src 'self' 'unsafe-inline'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis", "dmg", "app"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.icns", "icons/icon.ico"],
+    "externalBin": ["binaries/veris-core"],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com"
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "entitlements": null
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": true,
+      "endpoints": ["https://releases.veris.health/desktop/{{target}}/{{current_version}}"],
+      "pubkey": "REPLACE_WITH_RELEASE_PUBLIC_KEY"
+    }
+  }
+}

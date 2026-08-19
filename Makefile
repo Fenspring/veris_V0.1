@@ -8,17 +8,18 @@ install:                       ## create the virtualenv and install dependencies
 	$(PY) -m pip install --quiet --upgrade pip
 	$(PY) -m pip install --quiet -r requirements.txt
 
-seed:                          ## ingest the demo corpus, detect changes, analyse
-	$(PY) -m veris.cli seed
+seed:                          ## ingest, connect demo systems, analyse, run agents
+	@$(PY) -m veris.cli seed
 
 serve:                         ## run the API and workspace
 	$(PY) -m veris.cli serve --host 0.0.0.0 --port 8000
 
-test:                          ## unit and regression tests
-	$(PY) tests/test_relevance_floor.py
+test:                          ## contract and regression tests
+	@$(PY) tests/test_connectors.py
+	@$(PY) tests/test_relevance_floor.py
 
 eval:                          ## measure the intelligence against ground truth
-	$(PY) -m eval.run_eval
+	@$(PY) -m eval.run_eval
 
 demo: seed eval serve          ## seed, verify, then serve
 

@@ -229,8 +229,10 @@ class SyncEngine:
             ("SYNCED" if status == "SUCCEEDED" else
              ("WARNING" if status == "PARTIAL" else "ERROR"),
              now(), next_sync, error or None, connection_id))
+        repaired = self.resolve_pending_links()
         self.store.log("sync_completed",
-                       f"{conn['name']} · {kind} · {status} · {synced} records")
+                       f"{conn['name']} · {kind} · {status} · {synced} records"
+                       + (f" · {repaired} pending references resolved" if repaired else ""))
         self.store.commit()
 
         return SyncReport(connection_id, run_id, kind, status,
@@ -274,14 +276,52 @@ class SyncEngine:
         })
 
     def _apply_completion(self, connection_id: str, r: dict) -> None:
+        person_ext = r.get("person_external_id")
+        course_ext = r.get("course_external_id")
         self.store._insert("completions", {
             "id": _stable_id("cmp", connection_id, r["external_id"]),
             "connection_id": connection_id, "external_id": r["external_id"],
-            "person_id": _stable_id("per", connection_id, r["person_external_id"]),
-            "course_id": _stable_id("crs", connection_id, r["course_external_id"]),
+            "person_id": self._resolve("people", connection_id, person_ext, "per"),
+            "course_id": self._resolve("courses", connection_id, course_ext, "crs"),
+            "person_external_id": person_ext, "course_external_id": course_ext,
             "status": r.get("status"), "completed_at": r.get("completed_at"),
             "due_at": r.get("due_at"),
         })
+
+    def _resolve(self, table: str, connection_id: str,
+                 external_id: str | None, prefix: str) -> str | None:
+        """Internal id for an external reference, or None if it has not arrived.
+
+        Sync order across systems is not guaranteed — a completions export can
+        precede the roster, and the roster may come from a different connector
+        entirely. Dropping the row would lose data over timing.
+        """
+        if not external_id:
+            return None
+        candidate = _stable_id(prefix, connection_id, external_id)
+        if self.store.one(f"SELECT id FROM {table} WHERE id = ?", (candidate,)):
+            return candidate
+        row = self.store.one(
+            f"SELECT id FROM {table} WHERE external_id = ?", (external_id,))
+        return row["id"] if row else None
+
+    def resolve_pending_links(self) -> int:
+        """Fill in references whose other side has since arrived. Run after any
+        sync so a late roster repairs earlier completions."""
+        fixed = 0
+        for row in self.store.q(
+                "SELECT * FROM completions WHERE person_id IS NULL OR course_id IS NULL"):
+            person_id = row["person_id"] or self._resolve(
+                "people", row["connection_id"], row["person_external_id"], "per")
+            course_id = row["course_id"] or self._resolve(
+                "courses", row["connection_id"], row["course_external_id"], "crs")
+            if person_id != row["person_id"] or course_id != row["course_id"]:
+                self.store.db.execute(
+                    "UPDATE completions SET person_id=?, course_id=? WHERE id=?",
+                    (person_id, course_id, row["id"]))
+                fixed += 1
+        self.store.commit()
+        return fixed
 
     def _apply_policy(self, connection_id: str, r: dict) -> None:
         """A policy from a policy system. Text may or may not come with it."""

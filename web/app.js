@@ -3,7 +3,12 @@
    here. The UI's job is to make relationships legible, keep evidence one click
    away, and never state a finding more strongly than its provenance allows. */
 
-const API = '/api/v1';
+/* In the desktop shell the core listens on a loopback port chosen at startup,
+   injected as window.__VERIS_API__. Served from the API itself, this is a
+   same-origin relative path. One bundle, both deployments. */
+const API = (typeof window !== 'undefined' && window.__VERIS_API__)
+  ? window.__VERIS_API__ + '/api/v1'
+  : '/api/v1';
 const $ = (s, r = document) => r.querySelector(s);
 const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h !== undefined) n.innerHTML = h; return n; };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -54,7 +59,8 @@ function go(view) {
   $('#shell').classList.remove('hidden');
   document.querySelectorAll('.nav').forEach(n =>
     n.classList.toggle('active', n.dataset.goto === view));
-  ({ investigation, explorer, ask: askView, findings: findingsView, documents: documentsView }[view] || investigation)();
+  ({ investigation, explorer, ask: askView, findings: findingsView,
+     documents: documentsView, connections: connectionsView, agents: agentsView }[view] || investigation)();
 }
 
 document.addEventListener('click', e => {
@@ -486,6 +492,252 @@ window.upload = async () => {
       : `Connected ${d.title} — ${d.entities} knowledge items extracted.`;
     await documentsView();
   } catch (e) { msg.textContent = 'Failed: ' + e.message; }
+};
+
+
+/* ---------- connection center ---------- */
+/* Rendered entirely from connector registry metadata. Adding an integration
+   adds no code here — which is the difference between a plugin architecture
+   and a switch statement. */
+
+const catLabel = { LMS: 'Learning', POLICY: 'Policies', REGULATORY: 'Standards',
+                   IDENTITY: 'Identity', DOCUMENT: 'Files and exports',
+                   EVIDENCE: 'Evidence' };
+const stateClass = s => ({
+  SYNCED: 'b-low', CONNECTED: 'b-low', SYNCING: 'b-accent',
+  WARNING: 'b-med', ERROR: 'b-high', AUTHENTICATION_REQUIRED: 'b-med',
+  DISCONNECTED: 'b-neutral' }[s] || 'b-neutral');
+
+async function connectionsView() {
+  const main = $('#main');
+  main.innerHTML = `<h2 class="page">Connections</h2>
+    <p class="page-sub">Connect the systems you already use. Veris reads from them —
+    it never writes back.</p><div class="spinner">Loading…</div>`;
+
+  const [cat, conns] = await Promise.all([api('/connectors'), api('/connections')]);
+  const byId = Object.fromEntries(conns.map(c => [c.connector_id, c]));
+  main.innerHTML = `<h2 class="page">Connections</h2>
+    <p class="page-sub">Connect the systems you already use. Veris reads from them —
+    it never writes back.</p>`;
+
+  const cs = cat.credential_store || {};
+  main.append(el('div', 'card', `<div class="card-body" style="border:0;padding:.9rem 1.1rem">
+    <span class="badge ${cs.writable ? 'b-low' : 'b-med'}">${esc(cs.name || 'unknown')}</span>
+    <span class="meta" style="margin-left:.5rem">${esc(cs.detail || '')}</span></div>`));
+
+  for (const [category, items] of Object.entries(cat.categories)) {
+    main.append(el('h4', 'sec', catLabel[category] || category));
+    for (const info of items) {
+      const conn = byId[info.id];
+      const card = el('div', 'card');
+      const planned = info.availability !== 'available';
+      const badge = conn
+        ? `<span class="badge ${stateClass(conn.status)}">${esc(conn.status.replace(/_/g, ' '))}</span>`
+        : planned ? '<span class="badge b-neutral">not yet available</span>'
+                  : '<span class="badge b-accent">available</span>';
+      card.append(el('div', 'card-head', `
+        ${badge}
+        <div style="flex:1">
+          <div class="title">${esc(info.name)}
+            ${info.is_mock ? '<span class="badge b-neutral" style="margin-left:.4rem">demo data</span>' : ''}</div>
+          <div class="meta">${esc(info.vendor || '')}${conn && conn.last_sync_at
+            ? ' · last sync ' + esc(conn.last_sync_at.replace('T', ' ').slice(0, 16)) : ''}</div>
+          ${planned && info.setup_note
+            ? `<div class="stmt" style="color:var(--med)">${esc(info.setup_note)}</div>` : ''}
+        </div>`));
+      card.querySelector('.card-head').onclick = () =>
+        conn ? openConnection(conn.id) : openWizard(info);
+      main.append(card);
+    }
+  }
+
+  main.append(el('h4', 'sec', "Don't see your system?"));
+  main.append(el('div', 'card', `<div class="card-body" style="border:0;padding:1.1rem">
+    <div class="meta">Most systems can produce an export even when their API is
+    closed. Veris maps the columns for you and asks about anything it is unsure of.</div>
+    <div class="rowbtns" style="margin-top:.6rem">
+      <button class="btn sm" onclick="openImport()">Upload a CSV export</button>
+      <button class="btn sm" data-goto="documents">Upload documents</button>
+    </div></div>`));
+}
+
+function openWizard(info) {
+  if (info.availability !== 'available') {
+    openDrawer(`<button class="btn sm" data-close-drawer style="float:right">Close</button>
+      <h3>${esc(info.name)}</h3>
+      <div class="meta">${esc(info.vendor || '')}</div>
+      <p>${esc(info.setup_note)}</p>
+      <h4 class="sec">When available, Veris will read</h4>
+      ${(info.reads || []).map(r => `<div class="list-item">${esc(r)}</div>`).join('')}
+      <p class="scope">Veris will never modify this system.</p>
+      <h4 class="sec">Available today</h4>
+      <div class="meta">You can import an export from this system as a CSV, or upload
+      its documents directly, and connect the live system later.</div>`);
+    return;
+  }
+  openDrawer(`<button class="btn sm" data-close-drawer style="float:right">Close</button>
+    <h3>Connect ${esc(info.name)}</h3>
+    <div class="meta">${esc(info.vendor || '')}</div>
+    <h4 class="sec">Veris will read</h4>
+    ${(info.reads || []).map(r => `<div class="list-item">✓ ${esc(r)}</div>`).join('')}
+    <p class="scope">Veris will not modify ${esc(info.name)}. Connectors have no
+    write capability.</p>
+    ${info.auth_methods.includes('none') ? ''
+      : `<div class="field"><label>API key</label>
+         <input id="wz-key" type="password" autocomplete="off"
+                placeholder="Stored in your operating system's keychain"></div>`}
+    <div class="rowbtns">
+      <button class="btn sm primary" onclick="runConnect('${info.id}')">Connect ${esc(info.name)}</button>
+    </div>
+    <div id="wz-out" style="margin-top:1rem"></div>`);
+}
+
+window.runConnect = async (connectorId) => {
+  const out = $('#wz-out');
+  out.innerHTML = '<div class="spinner">Checking your connection…</div>';
+  const key = $('#wz-key')?.value;
+  try {
+    const res = await api('/connections', { method: 'POST', body: JSON.stringify({
+      connector_id: connectorId, credentials: key ? { api_key: key } : {} }) });
+    if (res.state !== 'CONNECTED') {
+      out.innerHTML = `<div class="empty">${esc(res.message || res.state)}</div>`;
+      return;
+    }
+    const d = res.discovery || { notes: [] };
+    out.innerHTML = `<h4 class="sec">Connection successful</h4>
+      <div class="card"><div class="card-body" style="border:0;padding:1rem">
+        ${(d.notes || []).map(n => `<div class="title">${esc(n)}</div>`).join('')}
+      </div></div>
+      ${(res.warnings || []).map(w => `<div class="stmt" style="color:var(--med)">${esc(w)}</div>`).join('')}
+      <div class="rowbtns"><button class="btn sm primary"
+        onclick="startSync('${res.connection_id}')">Start sync</button></div>
+      <div id="wz-sync"></div>`;
+  } catch (e) { out.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+};
+
+window.startSync = async (connectionId) => {
+  const out = $('#wz-sync');
+  out.innerHTML = '<div class="spinner">Syncing…</div>';
+  try {
+    const rep = await api(`/connections/${connectionId}/sync?kind=FULL`,
+                          { method: 'POST' });
+    out.innerHTML = `<h4 class="sec">You're connected</h4>
+      <div class="meta">${rep.synced} records synchronized${rep.failed ? `, ${rep.failed} skipped` : ''}.
+      Veris will keep monitoring this connection.</div>
+      <div class="rowbtns"><button class="btn sm" data-close-drawer
+        onclick="setTimeout(()=>go('connections'),50)">View connections</button></div>`;
+  } catch (e) { out.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+};
+
+window.openImport = () => {
+  openDrawer(`<button class="btn sm" data-close-drawer style="float:right">Close</button>
+    <h3>Import an export</h3>
+    <p class="meta">Paste or upload a CSV from any system. Veris maps the columns
+    onto its own schema and tells you about anything it could not place.</p>
+    <div class="field"><label>What does this export contain?</label>
+      <select id="im-type">
+        <option value="course">Courses or training</option>
+        <option value="person">Staff roster</option>
+        <option value="completion">Completions or assignments</option>
+        <option value="policy_record">Policies</option>
+      </select></div>
+    <div class="field"><label>CSV content</label>
+      <textarea id="im-csv" rows="7" placeholder="id,title,department&#10;..."></textarea></div>
+    <div class="rowbtns"><button class="btn sm primary" onclick="runImport()">Import</button></div>
+    <div id="im-out" style="margin-top:1rem"></div>`);
+};
+
+window.runImport = async () => {
+  const out = $('#im-out');
+  const content = $('#im-csv').value.trim();
+  if (!content) { out.innerHTML = '<div class="empty">Paste some CSV first.</div>'; return; }
+  out.innerHTML = '<div class="spinner">Reading your export…</div>';
+  try {
+    const res = await api('/connections', { method: 'POST', body: JSON.stringify({
+      connector_id: 'file_import', name: 'Imported export',
+      config: { content, record_type: $('#im-type').value } }) });
+    const d = res.discovery || { notes: [] };
+    out.innerHTML = `${(d.notes || []).map(n => `<div class="title">${esc(n)}</div>`).join('')}
+      <div class="rowbtns"><button class="btn sm primary"
+        onclick="startSync('${res.connection_id}')">Import these records</button></div>
+      <div id="wz-sync"></div>`;
+  } catch (e) { out.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+};
+
+async function openConnection(connectionId) {
+  openDrawer('<div class="spinner">Loading…</div>');
+  const c = await api(`/connections/${connectionId}`);
+  const runs = c.runs.map(r => `<div class="ev">
+      <b>${esc(r.kind)}</b> · ${esc(r.status)} · ${r.synced} synced${r.failed ? `, ${r.failed} failed` : ''}
+      <div class="when">${esc((r.started_at || '').replace('T', ' ').slice(0, 16))}</div>
+      ${r.error ? `<div style="color:var(--high)">${esc(r.error)}</div>` : ''}</div>`).join('');
+  openDrawer(`<button class="btn sm" data-close-drawer style="float:right">Close</button>
+    <span class="badge ${stateClass(c.status)}">${esc(c.status.replace(/_/g, ' '))}</span>
+    ${c.is_mock ? '<span class="badge b-neutral">demo data</span>' : ''}
+    <h3>${esc(c.name)}</h3>
+    <div class="meta">${esc(c.category)} · last sync
+      ${esc((c.last_sync_at || '—').replace('T', ' ').slice(0, 16))} · next
+      ${esc((c.next_sync_at || '—').replace('T', ' ').slice(0, 16))}</div>
+    ${c.last_error ? `<div class="stmt" style="color:var(--high)">${esc(c.last_error)}</div>` : ''}
+    <h4 class="sec">Records synchronized</h4>
+    <div class="tiles">
+      <div class="tile"><b>${c.records.courses}</b><span>courses</span></div>
+      <div class="tile"><b>${c.records.people}</b><span>people</span></div>
+      <div class="tile"><b>${c.records.completions}</b><span>completions</span></div>
+    </div>
+    <h4 class="sec">Veris reads</h4>
+    ${(c.reads || []).map(r => `<div class="list-item">✓ ${esc(r)}</div>`).join('')}
+    <p class="scope">Veris does not write to this system.</p>
+    <div class="rowbtns">
+      <button class="btn sm primary" onclick="startSync('${c.id}')">Sync now</button>
+      <button class="btn sm" onclick="dropConnection('${c.id}')">Disconnect</button>
+    </div>
+    <div id="wz-sync"></div>
+    <h4 class="sec">Sync history</h4><div class="timeline">${runs || '<div class="empty">No runs yet.</div>'}</div>`);
+}
+
+window.dropConnection = async (id) => {
+  try { await api(`/connections/${id}`, { method: 'DELETE' }); closeDrawer(); go('connections'); }
+  catch (e) { alert(e.message); }
+};
+
+/* ---------- agents ---------- */
+
+async function agentsView() {
+  const main = $('#main');
+  main.innerHTML = `<h2 class="page">Agents</h2>
+    <p class="page-sub">Modular reasoning over everything connected. An agent that
+    needs a system you have not connected says so rather than guessing.</p>
+    <div class="spinner">Loading…</div>`;
+  const agents = await api('/agents');
+  main.innerHTML = `<h2 class="page">Agents</h2>
+    <p class="page-sub">Modular reasoning over everything connected. An agent that
+    needs a system you have not connected says so rather than guessing.</p>`;
+  for (const a of agents) {
+    const card = el('div', 'card');
+    card.append(el('div', 'card-body', `<div style="padding:.2rem 0">
+      <span class="badge ${a.runnable ? 'b-low' : 'b-neutral'}">${a.runnable ? 'ready' : 'needs a connection'}</span>
+      <div class="title" style="margin-top:.4rem">${esc(a.name)}</div>
+      <div class="stmt">${esc(a.description)}</div>
+      ${a.blocked_by.length ? `<div class="meta" style="color:var(--med)">Needs: ${a.blocked_by.map(esc).join(', ')}</div>` : ''}
+      <div class="rowbtns"><button class="btn sm" ${a.runnable ? '' : 'disabled'}
+        onclick="runAgent('${a.id}')">Run</button></div>
+      <div id="ag-${a.id}"></div></div>`));
+    card.querySelector('.card-body').style.borderTop = '0';
+    main.append(card);
+  }
+}
+
+window.runAgent = async (id) => {
+  const out = document.getElementById('ag-' + id);
+  out.innerHTML = '<div class="spinner">Running…</div>';
+  try {
+    const r = await api(`/agents/${id}/run`, { method: 'POST' });
+    out.innerHTML = `<div class="meta">Examined ${r.examined} · created
+      ${r.findings_created} finding${r.findings_created === 1 ? '' : 's'}
+      ${r.skipped_reason ? '· ' + esc(r.skipped_reason) : ''}</div>
+      ${(r.notes || []).map(n => `<div class="stmt">${esc(n)}</div>`).join('')}`;
+  } catch (e) { out.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 };
 
 /* ---------- boot ---------- */

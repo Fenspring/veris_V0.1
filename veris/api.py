@@ -26,12 +26,18 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from .agents import AGENTS, run_agent
 from .analyze import analyze_source_version, impact_of_change
 from .ask import ask
 from .changes import find_version_pairs, record_changes
+from .connectors.base import ConnectorError, registry
+from .connectors.catalog import register_catalog
+from .connectors.mock import register_mocks
+from .credentials import backend as credential_backend, store_credential
 from .model import ModelError, from_env
 from .pipeline import IngestError, ingest_file
 from .store import REVIEW_STATUSES, Store
+from .sync import SyncEngine
 
 log = logging.getLogger("veris")
 
@@ -50,6 +56,9 @@ app = FastAPI(
                 "over an organization's own knowledge.",
 )
 store = Store(DB_PATH)
+register_mocks()
+register_catalog()
+sync_engine = SyncEngine(store)
 
 
 def require_token(authorization: str = Header(default="")) -> None:
@@ -91,6 +100,7 @@ def health() -> dict:
         "model_provider": os.environ.get("VERIS_MODEL_PROVIDER", "recorded"),
         "model": model_name,
         "auth": "token" if API_TOKEN else "open",
+        "credential_store": credential_backend().name,
         "counts": stats,
     }
 
@@ -429,6 +439,136 @@ def coverage() -> dict:
             "SELECT publisher, COUNT(*) n FROM sources WHERE publisher IS NOT NULL"
             " GROUP BY publisher ORDER BY n DESC"),
     }
+
+
+
+# --- connectors and connections ----------------------------------------------
+
+@app.get("/api/v1/connectors")
+def list_connectors() -> dict:
+    """The registry. The Connection Center renders entirely from this, which is
+    why adding an integration requires no dashboard change."""
+    connected = {c["connector_id"]: c for c in store.q("SELECT * FROM connections")}
+    by_category: dict[str, list[dict]] = {}
+    for info in registry.all():
+        row = info.as_dict()
+        existing = connected.get(info.id)
+        row["connection"] = {
+            "id": existing["id"], "status": existing["status"],
+            "last_sync_at": existing["last_sync_at"],
+        } if existing else None
+        by_category.setdefault(info.category, []).append(row)
+    return {"categories": by_category,
+            "credential_store": credential_backend().as_dict()
+            if hasattr(credential_backend(), "as_dict") else
+            credential_backend().__dict__}
+
+
+@app.get("/api/v1/connections")
+def list_connections() -> list[dict]:
+    rows = store.q("""
+        SELECT c.*, (SELECT COUNT(*) FROM sync_runs r WHERE r.connection_id = c.id)
+                     AS run_count
+        FROM connections c ORDER BY c.category, c.name""")
+    for r in rows:
+        info = registry.get(r["connector_id"])
+        r["reads"] = list(info.reads) if info else []
+        r["capabilities"] = list(info.capabilities) if info else []
+    return rows
+
+
+@app.get("/api/v1/connections/{connection_id}")
+def get_connection(connection_id: str) -> dict:
+    conn = store.one("SELECT * FROM connections WHERE id = ?", (connection_id,))
+    if not conn:
+        raise HTTPException(404, "Connection not found")
+    info = registry.get(conn["connector_id"])
+    conn["connector"] = info.as_dict() if info else None
+    conn["runs"] = store.q(
+        "SELECT * FROM sync_runs WHERE connection_id = ? ORDER BY started_at DESC"
+        " LIMIT 20", (connection_id,))
+    conn["records"] = {
+        "people": store.q("SELECT COUNT(*) n FROM people WHERE connection_id=?",
+                          (connection_id,))[0]["n"],
+        "courses": store.q("SELECT COUNT(*) n FROM courses WHERE connection_id=?",
+                           (connection_id,))[0]["n"],
+        "completions": store.q(
+            "SELECT COUNT(*) n FROM completions WHERE connection_id=?",
+            (connection_id,))[0]["n"],
+    }
+    return conn
+
+
+class ConnectRequest(BaseModel):
+    connector_id: str = Field(min_length=1, max_length=64)
+    name: str = Field(default="", max_length=120)
+    # Credentials are handed to the OS keychain and never persisted by Veris.
+    credentials: dict[str, str] = Field(default_factory=dict)
+    config: dict = Field(default_factory=dict)
+
+
+@app.post("/api/v1/connections", dependencies=[Depends(require_token)])
+def create_connection(req: ConnectRequest) -> dict:
+    try:
+        result = sync_engine.connect(req.connector_id, req.name,
+                                     req.credentials, req.config)
+    except ConnectorError as e:
+        raise HTTPException(400, str(e))
+    # Persist secrets to the OS store only; a failure here must not be fatal to
+    # the connection, and must never fall back to writing them somewhere else.
+    for field_name, value in req.credentials.items():
+        try:
+            store_credential(result["connection_id"], field_name, value)
+        except Exception as e:
+            result.setdefault("warnings", []).append(str(e))
+    return result
+
+
+@app.post("/api/v1/connections/{connection_id}/sync",
+          dependencies=[Depends(require_token)])
+def sync_connection(connection_id: str, kind: str = Query("FULL", max_length=16)) -> dict:
+    if kind.upper() not in ("FULL", "INCREMENTAL", "DISCOVERY"):
+        raise HTTPException(400, "kind must be FULL, INCREMENTAL or DISCOVERY")
+    try:
+        report = sync_engine.run(connection_id, kind.upper())
+    except ConnectorError as e:
+        raise HTTPException(404, str(e))
+    return report.__dict__
+
+
+@app.delete("/api/v1/connections/{connection_id}",
+            dependencies=[Depends(require_token)])
+def delete_connection(connection_id: str) -> dict:
+    try:
+        sync_engine.disconnect(connection_id)
+    except ConnectorError as e:
+        raise HTTPException(404, str(e))
+    return {"status": "DISCONNECTED"}
+
+
+# --- agents ------------------------------------------------------------------
+
+@app.get("/api/v1/agents")
+def list_agents() -> list[dict]:
+    connected = {c["category"] for c in store.q(
+        "SELECT DISTINCT category FROM connections WHERE status IN ('SYNCED','CONNECTED')")}
+    out = []
+    for info in AGENTS.values():
+        missing = [r for r in info.requires if r not in connected]
+        out.append({**info.__dict__,
+                    "produces": list(info.produces),
+                    "requires": list(info.requires),
+                    "runnable": not missing,
+                    "blocked_by": missing})
+    return out
+
+
+@app.post("/api/v1/agents/{agent_id}/run", dependencies=[Depends(require_token)])
+def run_one_agent(agent_id: str) -> dict:
+    if agent_id not in AGENTS:
+        raise HTTPException(404, "Unknown agent")
+    result = run_agent(store, agent_id)
+    return result.__dict__
 
 
 @app.get("/api/v1/overview")

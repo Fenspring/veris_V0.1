@@ -76,6 +76,11 @@ class ConnectorInfo:
     reads: tuple[str, ...] = ()                 # plain language, shown to the customer
     writes: tuple[str, ...] = ()                # always empty; present to be visibly empty
     is_mock: bool = False
+    # available: implemented and usable now.
+    # planned:   declared so the customer can see it is coming and what it will
+    #            need — shown in the Connection Center, refuses to connect.
+    # A planned connector must never look connectable. Never fake an integration.
+    availability: str = "available"
     requires_vendor_enablement: bool = False    # customer must ask their rep first
     setup_note: str = ""                        # shown before the customer starts
     docs_url: str = ""
@@ -184,7 +189,14 @@ class ConnectorRegistry:
     def create(self, connector_id: str, config: dict | None = None) -> Connector:
         if connector_id not in self._factories:
             raise ConnectorError(f"No connector registered with id {connector_id!r}")
+        info = self._info[connector_id]
+        if info.availability != "available":
+            raise ConnectorError(
+                f"{info.name} is not available yet. {info.setup_note}".strip())
         return self._factories[connector_id](config or {})
+
+    def available(self) -> list[ConnectorInfo]:
+        return [i for i in self.all() if i.availability == "available"]
 
     def get(self, connector_id: str) -> ConnectorInfo | None:
         return self._info.get(connector_id)
