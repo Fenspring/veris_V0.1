@@ -74,7 +74,13 @@ SEVERITIES = ("HIGH", "MEDIUM", "LOW")
 REVIEW_STATUSES = ("PROPOSED", "ACCEPTED", "REJECTED", "NEEDS_REVIEW", "RESOLVED")
 CHANGE_TYPES = ("ADDED", "REMOVED", "MODIFIED", "UNCHANGED")
 
-SCHEMA_VERSION = 1
+CONNECTION_STATES = (
+    "DISCONNECTED", "AUTHENTICATION_REQUIRED", "CONNECTED",
+    "SYNCING", "SYNCED", "WARNING", "ERROR",
+)
+CONNECTOR_CATEGORIES = ("LMS", "POLICY", "REGULATORY", "IDENTITY", "DOCUMENT", "EVIDENCE")
+
+SCHEMA_VERSION = 2
 
 SCHEMA = """
 PRAGMA journal_mode=WAL;
@@ -240,6 +246,130 @@ CREATE TABLE IF NOT EXISTS reviews (
     created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_reviews_target ON reviews(target_type, target_id);
+
+
+-- ---------------------------------------------------------------------------
+-- Connected external systems.
+--
+-- Two kinds of external record are kept deliberately apart (Decision 0007):
+-- knowledge that makes a normative claim becomes a document with verified-span
+-- entities, exactly like an uploaded file; an operational fact about the world
+-- becomes a normalized record below. A policy can be cited. "12,842 people
+-- completed this course" cannot — it is true, but no document says it, and
+-- letting it into the evidence tables would break the property that every
+-- citation resolves to text a human can read.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS connections (
+    id             TEXT PRIMARY KEY,
+    connector_id   TEXT NOT NULL,       -- registry key: 'healthstream', 'mock_lms'
+    name           TEXT NOT NULL,       -- what the customer calls it
+    category       TEXT NOT NULL,       -- LMS | POLICY | REGULATORY | IDENTITY | DOCUMENT | EVIDENCE
+    status         TEXT NOT NULL,       -- see CONNECTION_STATES
+    auth_method    TEXT,                -- oauth | api_key | sftp | file | none
+    config         TEXT,                -- JSON. NEVER credentials — those live in the OS keychain.
+    is_mock        INTEGER DEFAULT 0,   -- surfaced in the UI; a mock is never shown as live
+    last_sync_at   TEXT,
+    next_sync_at   TEXT,
+    cursor         TEXT,                -- checkpoint for resumable incremental sync
+    last_error     TEXT,
+    created_at     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_connections_category ON connections(category);
+
+CREATE TABLE IF NOT EXISTS sync_runs (
+    id            TEXT PRIMARY KEY,
+    connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+    kind          TEXT NOT NULL,        -- DISCOVERY | FULL | INCREMENTAL
+    status        TEXT NOT NULL,        -- RUNNING | SUCCEEDED | FAILED | PARTIAL
+    started_at    TEXT NOT NULL,
+    finished_at   TEXT,
+    discovered    INTEGER DEFAULT 0,
+    synced        INTEGER DEFAULT 0,
+    failed        INTEGER DEFAULT 0,
+    attempts      INTEGER DEFAULT 1,
+    cursor_before TEXT,
+    cursor_after  TEXT,
+    error         TEXT,                 -- redacted before storage
+    detail        TEXT                  -- JSON summary, no secrets
+);
+CREATE INDEX IF NOT EXISTS ix_sync_runs_conn ON sync_runs(connection_id, started_at DESC);
+
+-- Operational facts. Linked to the graph, never a source of citations.
+
+CREATE TABLE IF NOT EXISTS people (
+    id            TEXT PRIMARY KEY,
+    connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+    external_id   TEXT NOT NULL,
+    name          TEXT,
+    job_role      TEXT,
+    department    TEXT,
+    facility      TEXT,
+    active        INTEGER DEFAULT 1,
+    updated_at    TEXT,
+    UNIQUE (connection_id, external_id)
+);
+CREATE INDEX IF NOT EXISTS ix_people_role ON people(job_role);
+
+CREATE TABLE IF NOT EXISTS courses (
+    id            TEXT PRIMARY KEY,
+    connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+    external_id   TEXT NOT NULL,
+    title         TEXT NOT NULL,
+    description   TEXT,
+    category      TEXT,
+    content_updated_at TEXT,            -- what makes policy/training drift detectable
+    required      INTEGER DEFAULT 0,
+    updated_at    TEXT,
+    UNIQUE (connection_id, external_id)
+);
+
+CREATE TABLE IF NOT EXISTS completions (
+    id            TEXT PRIMARY KEY,
+    connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
+    external_id   TEXT NOT NULL,
+    person_id     TEXT REFERENCES people(id) ON DELETE CASCADE,
+    course_id     TEXT REFERENCES courses(id) ON DELETE CASCADE,
+    status        TEXT,                 -- COMPLETED | ASSIGNED | OVERDUE | EXEMPT
+    completed_at  TEXT,
+    due_at        TEXT,
+    UNIQUE (connection_id, external_id)
+);
+CREATE INDEX IF NOT EXISTS ix_completions_course ON completions(course_id);
+CREATE INDEX IF NOT EXISTS ix_completions_status ON completions(status);
+
+-- Evidence that something happened, as distinct from evidence of what a
+-- document says (the `evidence` table above). Both are provenance; these are
+-- attestations rather than quotations.
+CREATE TABLE IF NOT EXISTS evidence_records (
+    id            TEXT PRIMARY KEY,
+    connection_id TEXT REFERENCES connections(id) ON DELETE CASCADE,
+    external_id   TEXT,
+    evidence_type TEXT NOT NULL,        -- TRAINING_COMPLETION | ACKNOWLEDGMENT | AUDIT | ATTESTATION
+    subject       TEXT,
+    source        TEXT,
+    occurred_at   TEXT,
+    owner         TEXT,
+    status        TEXT,
+    entity_id     TEXT REFERENCES entities(id) ON DELETE SET NULL,
+    detail        TEXT,
+    created_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_evidence_records_entity ON evidence_records(entity_id);
+
+-- A course teaches a requirement or reinforces a policy. Courses are not
+-- entities, so this link lives beside the graph rather than inside it.
+CREATE TABLE IF NOT EXISTS course_entity_links (
+    course_id        TEXT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    entity_id        TEXT NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+    link_type        TEXT NOT NULL,     -- REINFORCES | TEACHES | VALIDATES
+    confidence       REAL,
+    rationale        TEXT,
+    provenance_class TEXT NOT NULL,
+    status           TEXT DEFAULT 'PROPOSED',
+    created_at       TEXT NOT NULL,
+    PRIMARY KEY (course_id, entity_id, link_type)
+);
 
 -- Audit-friendly event log (§26). No PHI, no secrets.
 CREATE TABLE IF NOT EXISTS events (
@@ -439,10 +569,13 @@ class Store:
             return self.db.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
         return {t: n(t) for t in
                 ("sources", "documents", "entities", "evidence",
-                 "relationships", "changes", "findings", "reviews")}
+                 "relationships", "changes", "findings", "reviews",
+                 "connections", "people", "courses", "completions")}
 
     def reset(self) -> None:
-        for t in ("reviews", "finding_entities", "finding_evidence", "findings",
+        for t in ("course_entity_links", "evidence_records", "completions",
+                  "courses", "people", "sync_runs", "connections",
+                  "reviews", "finding_entities", "finding_evidence", "findings",
                   "changes", "relationship_evidence", "relationships",
                   "entities", "evidence", "documents", "sources", "events"):
             self.db.execute(f"DELETE FROM {t}")

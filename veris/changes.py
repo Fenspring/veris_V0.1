@@ -156,7 +156,19 @@ def find_version_pairs(store: Store) -> list[tuple[dict, dict]]:
     for d in docs:
         by_title.setdefault(d["title"], []).append(d)
     for versions in by_title.values():
-        for older, newer in zip(versions, versions[1:]):
+        # Only a genuine version change makes one document supersede another.
+        # Documents sharing a title AND a version are the same revision seen
+        # twice, and pairing them would mark current requirements superseded —
+        # hiding them from every answer Veris gives.
+        distinct = []
+        seen: set[str] = set()
+        for d in versions:
+            key = (d.get("source_version") or d.get("version") or "").strip()
+            if key in seen:
+                continue
+            seen.add(key)
+            distinct.append(d)
+        for older, newer in zip(distinct, distinct[1:]):
             pairs.append((older, newer))
     return pairs
 

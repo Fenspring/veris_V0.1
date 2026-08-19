@@ -8,15 +8,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .agents import run_all
 from .analyze import analyze_source_version
 from .changes import find_version_pairs, record_changes
+from .connectors.mock import register_mocks
 from .model import Model
 from .pipeline import ingest_directory
 from .store import Store
+from .sync import SyncEngine
 
 
 def seed(store: Store, corpus: Path, data_dir: Path, model: Model,
-         reset: bool = True) -> dict:
+         reset: bool = True, connect_demo_systems: bool = True) -> dict:
     if reset:
         store.reset()
 
@@ -42,6 +45,31 @@ def seed(store: Store, corpus: Path, data_dir: Path, model: Model,
     if latest_standard:
         report["analysis"] = analyze_source_version(store, latest_standard["id"], model)
         report["analysed_document"] = latest_standard["title"]
+
+    # Connect the demo systems. These are labelled as mocks everywhere they
+    # appear; a mock is never presented as a live integration.
+    if connect_demo_systems:
+        register_mocks()
+        engine = SyncEngine(store)
+        connections = []
+        for connector_id in ("mock_lms", "mock_policy", "mock_regulatory"):
+            outcome = engine.connect(connector_id)
+            sync = engine.run(outcome["connection_id"], "FULL")
+            connections.append({
+                "connector": connector_id,
+                "discovered": outcome["discovery"]["total"] if outcome["discovery"] else 0,
+                "synced": sync.synced, "status": sync.status,
+            })
+        report["connections"] = connections
+
+    # Agents run last: they reason across everything now connected, including
+    # comparisons no single system could make on its own.
+    report["agents"] = [
+        {"agent": r.agent_id, "examined": r.examined,
+         "findings": r.findings_created, "notes": r.notes,
+         "skipped": r.skipped_reason}
+        for r in run_all(store)
+    ]
 
     report["stats"] = store.stats()
     return report
