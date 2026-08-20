@@ -20,15 +20,20 @@ from veris.connectors.base import (  # noqa: E402
     ConnectorError, ConnectorHealth, RateLimited, SyncPage, TransientError,
     registry,
 )
+from veris.connectors.base import Verification  # noqa: E402
 from veris.connectors.catalog import map_columns, register_catalog  # noqa: E402
+from veris.connectors.ecfr import parse_part, register_ecfr  # noqa: E402
 from veris.connectors.mock import register_mocks  # noqa: E402
 from veris.store import EXTERNAL_IDENTITY_TABLES, Store  # noqa: E402
 from veris.sync import SyncEngine, _redact  # noqa: E402
 
 register_mocks()
 register_catalog()
-ALL = [i.id for i in registry.available()
-       if i.id not in ("file_import",)]  # file import needs a file
+register_ecfr()
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+# file import needs a file; eCFR needs a network, and is exercised separately
+# against fixtures below rather than being quietly skipped.
+ALL = [i.id for i in registry.available() if i.id not in ("file_import", "ecfr")]
 
 
 def _store() -> Store:
@@ -160,7 +165,9 @@ def test_transient_failure_is_retried_then_succeeds():
 
     class Flaky:
         info = ConnectorInfo(id="flaky", name="Flaky", category="LMS",
-                             auth_methods=("none",), reads=("Courses",), is_mock=True)
+                             auth_methods=("none",), reads=("Courses",),
+                             capabilities=("course_catalog",), is_mock=True,
+                             verification=Verification(status="mock"))
         def __init__(self, config): pass
         def authenticate(self, c): from veris.connectors.base import AuthResult; return AuthResult(True)
         def test_connection(self):
@@ -193,7 +200,9 @@ def test_one_bad_record_does_not_abandon_the_sync():
 
     class Mixed:
         info = ConnectorInfo(id="mixed", name="Mixed", category="LMS",
-                             auth_methods=("none",), reads=("Courses",), is_mock=True)
+                             auth_methods=("none",), reads=("Courses",),
+                             capabilities=("course_catalog",), is_mock=True,
+                             verification=Verification(status="mock"))
         def __init__(self, config): pass
         def authenticate(self, c): return AuthResult(True)
         def test_connection(self): return ConnectionStatus("CONNECTED")
@@ -246,7 +255,9 @@ def test_rate_limit_backs_off_rather_than_hammering():
 
     class Limited:
         info = ConnectorInfo(id="limited", name="Limited", category="LMS",
-                             auth_methods=("none",), reads=("Courses",), is_mock=True)
+                             auth_methods=("none",), reads=("Courses",),
+                             capabilities=("course_catalog",), is_mock=True,
+                             verification=Verification(status="mock"))
         def __init__(self, config): pass
         def authenticate(self, c): return AuthResult(True)
         def test_connection(self): return ConnectionStatus("CONNECTED")
@@ -453,6 +464,131 @@ def test_schema_migrations_are_recorded():
     store = _store()
     from veris.store import SCHEMA_VERSION
     assert store.schema_version() == SCHEMA_VERSION
+
+
+
+# --- verification: an integration is not proven because it compiles ---------
+
+def test_an_unverified_connector_never_reads_as_proven():
+    info = registry.get("ecfr")
+    assert info.availability == "unverified"
+    assert info.verification.status == "unverified"
+    assert info.verification.reason, "an unverified connector must say why"
+    assert "never" in info.verification.summary.lower()
+
+
+def test_an_unverified_connector_can_still_be_created():
+    """A connector nobody can run is a connector nobody can verify."""
+    connector = registry.create("ecfr", {"fixture_dir": str(FIXTURES / "ecfr")})
+    assert isinstance(connector, Connector)
+
+
+def test_a_connector_cannot_declare_itself_available():
+    """Promotion comes from a recorded run, never from the declaration."""
+    from veris.connectors.base import ConnectorInfo, ConnectorRegistry
+    bare = ConnectorRegistry()
+    info = ConnectorInfo(id="wishful", name="Wishful", category="LMS",
+                         capabilities=("course_catalog",), reads=("Courses",),
+                         availability="available")
+    try:
+        bare.register(info, lambda config: None)
+        raise AssertionError("a connector promoted itself to available")
+    except ValueError as e:
+        assert "verification" in str(e)
+
+
+def test_a_recorded_verification_promotes_the_connector():
+    import json as _json
+    import os as _os
+    from veris.connectors.base import ConnectorInfo, ConnectorRegistry
+    directory = Path(tempfile.mkdtemp())
+    (directory / "probe.json").write_text(_json.dumps({
+        "status": "verified", "verified_at": "2026-08-20T00:00:00+00:00",
+        "verified_by": "a person", "environment": "a laptop",
+        "checks_passed": ["reachable", "sync_is_idempotent"]}))
+    previous = _os.environ.get("VERIS_VERIFICATION_DIR")
+    _os.environ["VERIS_VERIFICATION_DIR"] = str(directory)
+    try:
+        bare = ConnectorRegistry()
+        bare.register(ConnectorInfo(
+            id="probe", name="Probe", category="LMS",
+            capabilities=("course_catalog",), reads=("Courses",),
+            availability="unverified"), lambda config: None)
+        promoted = bare.get("probe")
+        assert promoted.availability == "available"
+        assert promoted.verification.verified_by == "a person"
+        assert "2 checks passed" in promoted.verification.summary
+    finally:
+        if previous is None:
+            _os.environ.pop("VERIS_VERIFICATION_DIR", None)
+        else:
+            _os.environ["VERIS_VERIFICATION_DIR"] = previous
+
+
+def test_the_verification_harness_refuses_to_verify_against_fixtures():
+    from veris.verify_connector import verify
+    try:
+        verify("ecfr", {"fixture_dir": str(FIXTURES / "ecfr")})
+        raise AssertionError("the harness verified against fixtures")
+    except SystemExit as e:
+        assert "fixtures" in str(e).lower()
+
+
+# --- eCFR parsing (fixtures, not captured traffic) --------------------------
+
+def test_ecfr_parses_sections_and_paragraph_hierarchy():
+    sections = parse_part((FIXTURES / "ecfr" / "full.xml").read_bytes())
+    assert [s.number for s in sections] == ["482.13", "482.23"]
+    designators = [p.designator for p in sections[0].paragraphs]
+    assert "(a)(1)" in designators
+    assert "(e)(1)(i)" in designators, "roman nesting under a numbered paragraph"
+    assert "(e)(1)(ii)" in designators
+
+
+def test_ecfr_tolerates_skipped_paragraph_designators():
+    """CFR parts reserve and remove designators. `(e)` arriving after `(b)(2)`
+    is `(e)`, not a child of `(b)`."""
+    sections = parse_part((FIXTURES / "ecfr" / "full.xml").read_bytes())
+    designators = [p.designator for p in sections[0].paragraphs]
+    assert "(e)" in designators
+    assert "(b)(e)" not in designators
+
+
+def test_ecfr_sections_become_citable_entities():
+    """The point of a source that supplies text: its requirements can be quoted.
+
+    The section goes through the same pipeline an uploaded PDF uses, so the
+    spans are byte-verified the same way.
+    """
+    store = _store()
+    engine = SyncEngine(store, sleep=lambda s: None,
+                        data_dir=Path(tempfile.mkdtemp()))
+    outcome = engine.connect("ecfr", config={"fixture_dir": str(FIXTURES / "ecfr")})
+    report = engine.run(outcome["connection_id"])
+    assert report.status == "SUCCEEDED" and report.failed == 0
+
+    locators = [e["locator"] for e in store.q("SELECT locator FROM entities")]
+    assert any(l.startswith("42 CFR §482.13(a)(1)") for l in locators), locators[:3]
+
+    # Every entity's statement must be exactly the text at its cited span.
+    for row in store.q("""SELECT e.statement, ev.quote, ev.char_start, ev.char_end,
+                                 d.canonical_path
+                          FROM entities e JOIN evidence ev ON ev.id = e.evidence_id
+                          JOIN documents d ON d.id = e.document_id"""):
+        text = Path(row["canonical_path"]).read_text(encoding="utf-8")
+        assert text[row["char_start"]:row["char_end"]] == row["statement"]
+
+
+def test_ecfr_records_the_amendment_date_the_source_reported():
+    store = _store()
+    engine = SyncEngine(store, sleep=lambda s: None,
+                        data_dir=Path(tempfile.mkdtemp()))
+    outcome = engine.connect("ecfr", config={"fixture_dir": str(FIXTURES / "ecfr")})
+    engine.run(outcome["connection_id"])
+    doc = store.one("SELECT * FROM documents WHERE source_ref = '482.13'")
+    assert doc["source_system"] == "ecfr"
+    assert doc["source_updated_at"] == "2026-04-01"
+    assert doc["effective_date"] == "2026-04-01"
 
 
 if __name__ == "__main__":

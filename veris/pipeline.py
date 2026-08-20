@@ -121,15 +121,21 @@ def _infer_type(meta: dict, name: str) -> str:
     return "POLICY"
 
 
-def ingest_file(store: Store, path: Path, data_dir: Path,
-                default_source_type: str = "ORGANIZATIONAL") -> IngestResult:
-    path = Path(path)
-    validate(path)
+def ingest_text(store: Store, body: str, meta: dict, data_dir: Path, *,
+                title: str, doc_type: str,
+                default_source_type: str = "ORGANIZATIONAL",
+                original: Path | None = None,
+                origin: dict | None = None) -> IngestResult:
+    """Text in, knowledge graph out. The single path into the graph.
 
-    raw = read_text(path)
-    meta, body = parse_front_matter(raw)
+    A file and a connector response reach this function the same way, which is
+    what keeps a regulation fetched over HTTP indistinguishable, downstream,
+    from the same regulation dropped in as a PDF: same canonical text, same
+    verified spans, same citations. `origin` records where it came from when it
+    came from a connected system (see DATA_MODEL.md, External identity).
+    """
     if not body.strip():
-        raise IngestError(f"No extractable text in {path.name}")
+        raise IngestError(f"No extractable text in {title}")
 
     # Canonical text is frozen here and never rewritten. Every span cites into
     # this file, so if the source changes its hash changes and every entity
@@ -145,15 +151,16 @@ def ingest_file(store: Store, path: Path, data_dir: Path,
         return IngestResult(existing["id"], existing["source_id"], existing["title"],
                             existing["document_type"], 0, 0, reused=True)
 
-    doc_type = _infer_type(meta, path.name)
-    title = meta.get("title") or re.sub(r"[_-]+", " ", path.stem)
     version = meta.get("version", "")
+    origin = origin or {}
 
     # Originals are retained; provenance means being able to return to the artifact.
-    originals = data_dir / "originals"
-    originals.mkdir(parents=True, exist_ok=True)
-    stored = originals / f"{text_sha[:16]}{path.suffix.lower()}"
-    shutil.copy2(path, stored)
+    stored = None
+    if original is not None:
+        originals = data_dir / "originals"
+        originals.mkdir(parents=True, exist_ok=True)
+        stored = originals / f"{text_sha[:16]}{original.suffix.lower()}"
+        shutil.copy2(original, stored)
 
     source_id = store.add_source(
         source_type=meta.get("source_type", default_source_type).upper(),
@@ -167,19 +174,27 @@ def ingest_file(store: Store, path: Path, data_dir: Path,
         retrieval_date=meta.get("retrieval_date"),
         reference_url=meta.get("reference_url"),
         content_hash=text_sha,
+        # `sources.source_id` and `documents.source_ref` hold the same vendor
+        # identifier; the column names differ because `documents.source_id` is
+        # already the foreign key to `sources`.
+        **({k: v for k, v in origin.items() if k != "source_ref"}
+           | ({"source_id": origin["source_ref"]} if "source_ref" in origin else {})),
     )
     document_id = store.add_document(
         source_id=source_id, document_type=doc_type, title=title, version=version,
         effective_date=meta.get("effective_date"), status=meta.get("status", "ACTIVE"),
         owner=meta.get("owner"), department=meta.get("department"),
         text_sha256=text_sha, char_count=len(body),
-        storage_path=str(stored), canonical_path=str(canonical_path),
+        storage_path=str(stored) if stored else None,
+        canonical_path=str(canonical_path),
         metadata=json.dumps(meta),
+        **{k: v for k, v in origin.items() if k != "source_id"},
     )
 
     entity_type, role = TYPE_ROLE.get(doc_type, ("POLICY_STATEMENT", "COMMITS"))
     standard_id = meta.get("standard") or title.split("—")[0].strip()
-    found = extract(body, doc_type, standard_id if doc_type == "STANDARD" else title)
+    found = extract(body, doc_type,
+                    standard_id if doc_type in ("STANDARD", "REGULATION") else title)
     ok, rejected = verify(found, body)
 
     for e in ok:
@@ -195,6 +210,21 @@ def ingest_file(store: Store, path: Path, data_dir: Path,
               f"{title} v{version or '-'} · {doc_type} · {len(ok)} entities")
     store.commit()
     return IngestResult(document_id, source_id, title, doc_type, len(ok), len(rejected))
+
+
+def ingest_file(store: Store, path: Path, data_dir: Path,
+                default_source_type: str = "ORGANIZATIONAL") -> IngestResult:
+    path = Path(path)
+    validate(path)
+
+    meta, body = parse_front_matter(read_text(path))
+    if not body.strip():
+        raise IngestError(f"No extractable text in {path.name}")
+    return ingest_text(
+        store, body, meta, data_dir,
+        title=meta.get("title") or re.sub(r"[_-]+", " ", path.stem),
+        doc_type=_infer_type(meta, path.name),
+        default_source_type=default_source_type, original=path)
 
 
 def ingest_directory(store: Store, directory: Path, data_dir: Path,

@@ -101,7 +101,16 @@ Veris ships with demo connectors so the whole product is demonstrable before any
 vendor credential exists. They are labelled `demo data` everywhere and implement
 the same interface as real connectors, passing the same contract tests.
 
-Real integrations are declared in the catalogue — HealthStream, Relias,
+**eCFR** — the federal Code of Federal Regulations — is implemented as real
+code against a public, credential-free API, and marked `unverified`: it has
+never been executed against the live service, because this build environment's
+network policy blocks it. Veris says so in the registry, the API and the
+Connection Center rather than calling it available because the code compiles.
+`make verify-connector CONNECTOR=ecfr` runs it against the real service from a
+networked machine and records exactly what passed — and that record, not the
+connector's own declaration, is what promotes it.
+
+Other integrations are declared in the catalogue — HealthStream, Relias,
 Cornerstone, PolicyStat, PowerDMS, CMS, The Joint Commission and others — with
 what each will need. Until one is implemented, **file import works today**: most
 systems can produce an export even when their API is closed, and Veris maps the
@@ -211,6 +220,7 @@ Interactive documentation at `/docs`.
 
 ```bash
 make test    # connector contract tests + migrations + retrieval regression
+make verify-connector CONNECTOR=ecfr   # run a connector against the real thing
 make eval    # 49 checks across ten intelligence capabilities
 ```
 

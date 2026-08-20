@@ -12,6 +12,7 @@ from .agents import run_all
 from .analyze import analyze_source_version
 from .changes import find_version_pairs, record_changes
 from .connectors.catalog import register_catalog
+from .connectors.ecfr import register_ecfr
 from .connectors.mock import register_mocks
 from .model import Model
 from .pipeline import ingest_directory
@@ -52,6 +53,7 @@ def seed(store: Store, corpus: Path, data_dir: Path, model: Model,
     if connect_demo_systems:
         register_mocks()
         register_catalog()
+        register_ecfr()
         engine = SyncEngine(store)
         connections = []
         for connector_id in ("mock_lms", "mock_policy", "mock_regulatory"):

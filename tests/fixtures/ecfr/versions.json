@@ -1,0 +1,13 @@
+{
+  "content_versions": [
+    {"date": "2026-04-01", "amendment_date": "2026-04-01", "issue_date": "2026-04-01",
+     "identifier": "482.13", "name": "§ 482.13 Condition of participation: Patient's rights.",
+     "part": "482", "subpart": "B", "title": "42", "type": "section",
+     "substantive": true, "removed": false},
+    {"date": "2024-11-01", "amendment_date": "2024-11-01", "issue_date": "2024-11-01",
+     "identifier": "482.23", "name": "§ 482.23 Condition of participation: Nursing services.",
+     "part": "482", "subpart": "C", "title": "42", "type": "section",
+     "substantive": true, "removed": false}
+  ],
+  "meta": {"title": "42", "part": "482", "result_count": 2}
+}

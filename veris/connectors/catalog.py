@@ -26,7 +26,7 @@ from typing import Iterable
 
 from .base import (
     AuthResult, ConnectionStatus, ConnectorError, ConnectorInfo,
-    DiscoveryResult, HealthStatus, SyncPage, registry,
+    DiscoveryResult, HealthStatus, SyncPage, Verification, registry,
 )
 
 # --------------------------------------------------------------------------
@@ -96,6 +96,21 @@ class FileImportConnector:
         reads=("Whatever columns your export contains",),
         setup_note="Export from any system. Veris maps the columns for you and "
                    "asks about anything it is unsure of.",
+        # The only connector whose external system is a file on disk. There is
+        # no vendor to reach, so what needs proving is that Veris reads a real
+        # export correctly — and that is proven on every commit rather than once.
+        verification=Verification(
+            status="verified",
+            verified_by="tests/test_connectors.py",
+            environment="Local file. No external system to reach.",
+            checks_passed=("column mapping across LMS and policy export shapes",
+                           "unmappable columns reported rather than guessed",
+                           "composite keys for completion exports with no id",
+                           "idempotent re-import",
+                           "read-only, no write path"),
+            notes="Verified continuously by the contract suite, not by a "
+                  "one-off run against a vendor.",
+        ),
     )
 
     def __init__(self, config: dict):

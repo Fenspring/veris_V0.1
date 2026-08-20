@@ -19,6 +19,9 @@ test:                          ## contract and regression tests
 	@$(PY) tests/test_migrations.py
 	@$(PY) tests/test_relevance_floor.py
 
+verify-connector:              ## run a connector against the live system (needs network)
+	@$(PY) -m veris.verify_connector $(CONNECTOR) $(if $(BY),--by "$(BY)") $(if $(CONFIG),--config $(CONFIG))
+
 eval:                          ## measure the intelligence against ground truth
 	@$(PY) -m eval.run_eval
 

@@ -1,0 +1,8 @@
+{
+  "titles": [
+    {"number": 42, "name": "Public Health", "latest_amended_on": "2026-07-14",
+     "latest_issue_date": "2026-07-14", "up_to_date_as_of": "2026-07-16",
+     "reserved": false}
+  ],
+  "meta": {"date": "2026-07-16", "import_in_progress": false}
+}

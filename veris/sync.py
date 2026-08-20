@@ -28,9 +28,11 @@ import hashlib
 import json
 import random
 import time
+import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 from .connectors.base import (
     HEALTH_STATES, ConnectorError, ConnectorHealth, RateLimited, TransientError,
@@ -90,9 +92,13 @@ def _backoff(attempt: int, hint: float | None = None) -> float:
 
 
 class SyncEngine:
-    def __init__(self, store: Store, sleep=time.sleep):
+    def __init__(self, store: Store, sleep=time.sleep, data_dir: Path | str | None = None):
         self.store = store
         self._sleep = sleep  # injectable so tests do not actually wait
+        # Where canonical text and retained artifacts live. A connector that
+        # returns document *text* goes through the same ingest path as an
+        # uploaded file, so it needs the same place to freeze it.
+        self.data_dir = Path(data_dir or os.environ.get("VERIS_DATA_DIR", "data"))
 
     # --- connection lifecycle ------------------------------------------------
 
@@ -427,6 +433,7 @@ class SyncEngine:
             "person": self._apply_person,
             "course": self._apply_course,
             "completion": self._apply_completion,
+            "knowledge_document": self._apply_knowledge_document,
             "policy_record": self._apply_policy,
             "requirement_record": self._apply_requirement,
             "evidence_record": self._apply_evidence,
@@ -527,6 +534,41 @@ class SyncEngine:
                 fixed += 1
         self.store.commit()
         return fixed
+
+    def _apply_knowledge_document(self, connection_id: str, r: dict,
+                                  system: str = "") -> None:
+        """A document with its text, from a source that supplies text.
+
+        Routed through the same pipeline an uploaded file uses, deliberately.
+        A regulation fetched over HTTP and the same regulation dropped in as a
+        PDF must be indistinguishable downstream: same frozen canonical text,
+        same byte-verified spans, same citations. Anything less would make a
+        finding's trustworthiness depend on how the document arrived.
+        """
+        from .pipeline import IngestError, ingest_text
+
+        source_id = _require_source_id(r)
+        text = r.get("text") or ""
+        if not text.strip():
+            raise ValueError(f"{source_id} arrived with no text")
+
+        meta = {k: v for k, v in r.items()
+                if k in ("publisher", "authority", "jurisdiction", "version",
+                         "effective_date", "reference_url", "retrieval_date",
+                         "source_title", "standard", "owner", "department",
+                         "status")}
+        meta["source_type"] = r.get("source_type") or (
+            "REGULATION" if r.get("document_type") == "REGULATION"
+            else "ACCREDITATION_STANDARD")
+        meta["connection_id"] = connection_id
+        origin = self._origin(r, system) | {"source_ref": source_id}
+        try:
+            ingest_text(self.store, text, meta, self.data_dir,
+                        title=r.get("title") or source_id,
+                        doc_type=r.get("document_type", "REGULATION"),
+                        origin=origin)
+        except IngestError as e:
+            raise ValueError(str(e)) from None
 
     def _apply_policy(self, connection_id: str, r: dict, system: str = "") -> None:
         """A policy from a policy system. Text may or may not come with it."""

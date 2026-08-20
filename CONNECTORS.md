@@ -105,12 +105,36 @@ has done, which is not something a vendor should be trusted to report.
 
 | State | Meaning | In the UI |
 |---|---|---|
-| `available` | Implemented and usable now | Connect button works |
+| `available` | Somebody ran it against the real system and recorded what passed | Connect button works |
+| `unverified` | Implemented against a published contract; never executed live | Connectable, labelled unverified, and says so before you connect |
 | `planned` | Declared so the customer can see what is coming and what it needs | Shown, explained, refuses to connect |
 
 Showing a vendor's name next to a Connect button that silently does nothing is
 worse than omitting the vendor. A planned connector always explains what it will
 need and what is available today instead.
+
+`unverified` exists because the two alternatives are both dishonest. Calling
+such a connector `available` claims a working integration on the strength of
+code compiling. Calling it `planned` hides working code a design partner could
+verify in an afternoon. Neither tells the customer what is true.
+
+**A connector cannot promote itself.** The registry refuses to register anything
+as `available` without a verification record, and the only thing that writes one
+is a run against the live system:
+
+```bash
+make verify-connector CONNECTOR=ecfr BY="your name"
+```
+
+That records the date, the person, the environment, the endpoints that answered,
+and which of nine checks passed, into
+`docs/connectors/verification/<id>.json`. A partial result is written too —
+four of nine passing, with the failures named, is more useful to the next
+engineer than a red cross and more honest than a green tick.
+
+Two exemptions, both because there is no external system to reach: a mock
+declares `status: "mock"`, and file import is verified continuously by the
+contract suite.
 
 ## Integration mechanisms
 
@@ -169,6 +193,9 @@ shipping.
 ## Current catalogue
 
 **Available:** demo LMS, demo policy system, demo standards feed, file import.
+**Unverified:** eCFR — real code against a public, credential-free federal
+source, and the only connector that supplies regulation *text* rather than
+metadata. See `docs/connectors/ecfr.md`.
 **Planned:** HealthStream, Relias, Cornerstone, Workday Learning, Moodle,
 Docebo, SAP SuccessFactors, PolicyStat, PowerDMS, PolicyTech, SharePoint, CMS,
 The Joint Commission, DNV, ACHC, state licensure sources.

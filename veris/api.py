@@ -37,6 +37,7 @@ from .connectors.base import (
     CAPABILITIES, ConnectorError, describe_capabilities, registry,
 )
 from .connectors.catalog import register_catalog
+from .connectors.ecfr import register_ecfr
 from .connectors.mock import register_mocks
 from .credentials import backend as credential_backend, store_credential
 from .model import ModelError, from_env
@@ -63,6 +64,7 @@ app = FastAPI(
 store = Store(DB_PATH)
 register_mocks()
 register_catalog()
+register_ecfr()
 sync_engine = SyncEngine(store)
 
 

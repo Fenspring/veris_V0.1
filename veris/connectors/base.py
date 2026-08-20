@@ -30,8 +30,13 @@ Veris can say without changing a line of reasoning.
 
 from __future__ import annotations
 
+import json
+import os
 from dataclasses import asdict, dataclass, field
+from dataclasses import fields as dataclasses_fields
+from dataclasses import replace
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Iterable, Protocol, runtime_checkable
 
 CATEGORIES = ("LMS", "POLICY", "REGULATORY", "IDENTITY", "DOCUMENT", "EVIDENCE")
@@ -139,6 +144,76 @@ def describe_capabilities(ids: Iterable[str]) -> list[dict]:
     return [asdict(CAPABILITIES[c]) for c in ids if c in CAPABILITIES]
 
 
+# --- Availability and verification ------------------------------------------
+#
+# Three states, and the middle one is the honest answer to a question most
+# integration catalogues never ask: *has anyone actually run this?*
+#
+#   available   implemented and proven against the real system
+#   unverified  implemented against a published contract, never executed live
+#   planned     declared so the customer can see what is coming; refuses to connect
+#
+# `unverified` exists because the alternatives are both dishonest. Calling such
+# a connector `available` claims a working integration on the strength of code
+# compiling. Calling it `planned` hides working code a design partner could
+# verify in an afternoon. Neither tells the customer what is true.
+
+AVAILABILITY = ("available", "unverified", "planned")
+
+
+@dataclass(frozen=True)
+class Verification:
+    """What was actually verified about a connector, and by whom.
+
+    Never inferred and never defaulted to something reassuring. A connector
+    nobody has run says so, in the registry, in the API, and on the screen.
+    """
+    status: str = "unverified"           # unverified | verified | mock
+    verified_at: str = ""                # ISO date of the verification run
+    verified_by: str = ""                # who ran it
+    environment: str = ""                # where it ran, in plain language
+    endpoints: tuple[str, ...] = ()      # what was actually called
+    checks_passed: tuple[str, ...] = ()
+    checks_failed: tuple[str, ...] = ()
+    reason: str = ""                     # why it is unverified, if it is
+    exercised_against: str = ""          # what it *has* been run against
+    notes: str = ""
+
+    @classmethod
+    def recorded(cls, connector_id: str) -> "Verification | None":
+        """Load what a verification run actually recorded, if one has happened.
+
+        A connector cannot declare itself verified; it declares what it is
+        without one. `make verify-connector` writes the record, and that record
+        is what promotes it. The claim therefore always traces to a run, with a
+        date, a person, and a list of what passed.
+        """
+        directory = Path(os.environ.get("VERIS_VERIFICATION_DIR")
+                         or Path(__file__).resolve().parents[2]
+                         / "docs" / "connectors" / "verification")
+        path = directory / f"{connector_id}.json"
+        if not path.is_file():
+            return None
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        fields = {f.name for f in dataclasses_fields(cls)}
+        return cls(**{k: (tuple(v) if isinstance(v, list) else v)
+                      for k, v in data.items() if k in fields})
+
+    @property
+    def summary(self) -> str:
+        if self.status == "mock":
+            return "Demo data — no external system to verify against."
+        if self.status == "verified":
+            return ((f"Verified {self.verified_at} by {self.verified_by or 'unknown'}"
+                     if self.verified_at else
+                     f"Verified by {self.verified_by or 'unknown'}")
+                    + f" · {len(self.checks_passed)} checks passed")
+        return ("Never run against the live system. " + (self.reason or "")).strip()
+
+
 class ConnectorError(RuntimeError):
     """Base for connector failures. Messages are safe to show a customer:
     they never carry credentials, tokens, or document contents."""
@@ -180,11 +255,10 @@ class ConnectorInfo:
     supports_webhooks: bool = False
     rate_limit: str = ""                        # plain language, e.g. "600 requests/minute"
     is_mock: bool = False
-    # available: implemented and usable now.
-    # planned:   declared so the customer can see it is coming and what it will
-    #            need — shown in the Connection Center, refuses to connect.
-    # A planned connector must never look connectable. Never fake an integration.
+    # See AVAILABILITY above. A planned connector must never look connectable,
+    # and an unverified one must never look proven. Never fake an integration.
     availability: str = "available"
+    verification: Verification = field(default_factory=Verification)
     requires_vendor_enablement: bool = False    # customer must ask their rep first
     setup_note: str = ""                        # shown before the customer starts
     docs_url: str = ""
@@ -192,6 +266,9 @@ class ConnectorInfo:
     def as_dict(self) -> dict:
         d = {k: (list(v) if isinstance(v, tuple) else v)
              for k, v in self.__dict__.items()}
+        d["verification"] = {**asdict(self.verification),
+                             "summary": self.verification.summary}
+        d["capabilities"] = describe_capabilities(self.capabilities)
         return d
 
 
@@ -325,6 +402,16 @@ class ConnectorRegistry:
     def register(self, info: ConnectorInfo, factory) -> None:
         if info.category not in CATEGORIES:
             raise ValueError(f"Unknown connector category: {info.category}")
+        if info.availability not in AVAILABILITY:
+            raise ValueError(f"Unknown availability: {info.availability}")
+        if (info.availability == "available"
+                and info.verification.status not in ("verified", "mock")):
+            # A connector cannot promote itself. `available` means somebody ran
+            # it against the real system and recorded what passed.
+            raise ValueError(
+                f"{info.id} declares availability 'available' but carries no "
+                f"verification record. Use 'unverified' until "
+                f"`make verify-connector CONNECTOR={info.id}` has been run.")
         for method in info.auth_methods:
             if method not in AUTH_METHODS:
                 raise ValueError(f"Unknown auth method: {method}")
@@ -339,19 +426,31 @@ class ConnectorRegistry:
             # declares a write capability is a bug, not a feature request.
             raise ValueError(f"{info.id} declares write capabilities; connectors are read-only")
         self._factories[info.id] = factory
-        self._info[info.id] = info
+        self._info[info.id] = _with_recorded_verification(info)
 
     def create(self, connector_id: str, config: dict | None = None) -> Connector:
         if connector_id not in self._factories:
             raise ConnectorError(f"No connector registered with id {connector_id!r}")
         info = self._info[connector_id]
-        if info.availability != "available":
+        if info.availability == "planned":
             raise ConnectorError(
                 f"{info.name} is not available yet. {info.setup_note}".strip())
+        # `unverified` connectors are creatable on purpose: a connector nobody
+        # can run is a connector nobody can verify. What must not happen is
+        # anyone mistaking it for proven, which is why the state is carried on
+        # the registry entry, the health record, and the connection screen.
         return self._factories[connector_id](config or {})
 
     def available(self) -> list[ConnectorInfo]:
-        return [i for i in self.all() if i.availability == "available"]
+        """Connectors that can be connected — proven and unproven alike.
+
+        The distinction between them is `availability`, carried everywhere it
+        is rendered, not a filter that hides one of them.
+        """
+        return [i for i in self.all() if i.availability != "planned"]
+
+    def verified(self) -> list[ConnectorInfo]:
+        return [i for i in self.all() if i.verification.status == "verified"]
 
     def get(self, connector_id: str) -> ConnectorInfo | None:
         return self._info.get(connector_id)
@@ -372,6 +471,20 @@ class ConnectorRegistry:
         for info in self.all():
             out.setdefault(info.category, []).append(info)
         return out
+
+
+def _with_recorded_verification(info: ConnectorInfo) -> ConnectorInfo:
+    """Overlay what a verification run recorded, if there is one.
+
+    This is the only path from `unverified` to `available`. A connector's own
+    declaration can never promote it, which is what stops "it compiles" from
+    becoming "it works" one optimistic edit at a time.
+    """
+    recorded = Verification.recorded(info.id)
+    if recorded is None or recorded.status != "verified":
+        return info
+    availability = "available" if info.availability == "unverified" else info.availability
+    return replace(info, verification=recorded, availability=availability)
 
 
 registry = ConnectorRegistry()

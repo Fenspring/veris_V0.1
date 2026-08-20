@@ -23,7 +23,7 @@ from typing import Iterable
 
 from .base import (
     AuthResult, ConnectionStatus, Connector, ConnectorInfo, DiscoveryResult,
-    HealthStatus, SyncPage, registry,
+    HealthStatus, SyncPage, Verification, registry,
 )
 
 DEPARTMENTS = ["Nursing", "Pharmacy", "Emergency", "Surgical Services",
@@ -33,6 +33,18 @@ ROLES = ["Registered Nurse", "Licensed Practical Nurse", "Pharmacist",
          "Surgical Technologist", "Physician"]
 FACILITIES = ["Northstar Medical Center", "Northstar West Campus",
               "Northstar Ambulatory Surgery"]
+
+
+# A mock has no external system behind it, so "verified" and "unverified" are
+# both the wrong word. Saying so is better than leaving a status that reads as a
+# judgement about an integration that does not exist.
+DEMO_VERIFICATION = Verification(
+    status="mock",
+    environment="In-process, deterministic.",
+    reason="Demo data. There is no external system to verify against.",
+    exercised_against="The same contract suite every real connector must pass "
+                      "(tests/test_connectors.py).",
+)
 
 
 def _rng(seed: str) -> random.Random:
@@ -104,6 +116,7 @@ class MockLMS(_MockBase):
         supports_incremental=True,
         is_mock=True,
         setup_note="Demo data. Connect a real LMS to replace it.",
+        verification=DEMO_VERIFICATION,
     )
 
     TOTAL_PEOPLE = 12_842
@@ -215,6 +228,7 @@ class MockPolicySystem(_MockBase):
         supports_incremental=True,
         is_mock=True,
         setup_note="Demo data. Connect a real policy system to replace it.",
+        verification=DEMO_VERIFICATION,
     )
 
     TOTAL_POLICIES = 14_284
@@ -279,6 +293,7 @@ class MockRegulatory(_MockBase):
                "Citations and crosswalks"),
         is_mock=True,
         setup_note="Demo data. Connect a licensed standards source to replace it.",
+        verification=DEMO_VERIFICATION,
     )
 
     REQUIREMENTS = [

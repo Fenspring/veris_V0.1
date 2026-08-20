@@ -530,10 +530,12 @@ async function connectionsView() {
     for (const info of items) {
       const conn = byId[info.id];
       const card = el('div', 'card');
-      const planned = info.availability !== 'available';
+      const planned = info.availability === 'planned';
+      const unverified = info.availability === 'unverified';
       const badge = conn
         ? `<span class="badge ${stateClass(conn.status)}">${esc(conn.status.replace(/_/g, ' '))}</span>`
         : planned ? '<span class="badge b-neutral">not yet available</span>'
+        : unverified ? '<span class="badge b-med">unverified</span>'
                   : '<span class="badge b-accent">available</span>';
       card.append(el('div', 'card-head', `
         ${badge}
@@ -542,7 +544,7 @@ async function connectionsView() {
             ${info.is_mock ? '<span class="badge b-neutral" style="margin-left:.4rem">demo data</span>' : ''}</div>
           <div class="meta">${esc(info.vendor || '')}${conn && conn.last_sync_at
             ? ' · last sync ' + esc(conn.last_sync_at.replace('T', ' ').slice(0, 16)) : ''}</div>
-          ${planned && info.setup_note
+          ${(planned || unverified) && info.setup_note
             ? `<div class="stmt" style="color:var(--med)">${esc(info.setup_note)}</div>` : ''}
         </div>`));
       card.querySelector('.card-head').onclick = () =>
@@ -562,6 +564,31 @@ async function connectionsView() {
 }
 
 function openWizard(info) {
+  if (info.availability === 'unverified') {
+    // Connectable, and never dressed up as proven. The customer decides whether
+    // to be the one who verifies it, and is told exactly what that means.
+    openDrawer(`<button class="btn sm" data-close-drawer style="float:right">Close</button>
+      <h3>Connect ${esc(info.name)}</h3>
+      <div class="meta">${esc(info.vendor || '')}</div>
+      <div class="card" style="margin:.8rem 0"><div class="card-body" style="border:0">
+        <span class="badge b-med">unverified</span>
+        <div class="stmt" style="margin-top:.4rem">${esc(info.verification.summary)}</div>
+        ${info.verification.exercised_against
+          ? `<div class="meta">Exercised against: ${esc(info.verification.exercised_against)}</div>` : ''}
+      </div></div>
+      <p>The code is real and complete. Nobody has yet run it against the live
+      system, so Veris will not call it proven. Connecting it is how it gets
+      verified — what it returns will be recorded.</p>
+      <h4 class="sec">Veris will read</h4>
+      ${(info.reads || []).map(r => `<div class="list-item">${esc(r)}</div>`).join('')}
+      <p class="scope">Veris will not modify ${esc(info.name)}. Connectors have no
+      write capability.</p>
+      <div class="rowbtns">
+        <button class="btn sm" onclick="runConnect('${info.id}')">Connect anyway</button>
+      </div>
+      <div id="wz-out" style="margin-top:1rem"></div>`);
+    return;
+  }
   if (info.availability !== 'available') {
     openDrawer(`<button class="btn sm" data-close-drawer style="float:right">Close</button>
       <h3>${esc(info.name)}</h3>
