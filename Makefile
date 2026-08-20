@@ -16,6 +16,7 @@ serve:                         ## run the API and workspace
 
 test:                          ## contract and regression tests
 	@$(PY) tests/test_connectors.py
+	@$(PY) tests/test_migrations.py
 	@$(PY) tests/test_relevance_floor.py
 
 eval:                          ## measure the intelligence against ground truth

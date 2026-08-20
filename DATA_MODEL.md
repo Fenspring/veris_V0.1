@@ -34,14 +34,53 @@ when it filed it.
 ```
 connections   connector_id · category · status · cursor · last_sync_at
   ├─ sync_runs      kind · status · discovered · synced · failed · cursors
-  ├─ people         external_id · job_role · department · facility
-  ├─ courses        external_id · title · content_updated_at · required
+  ├─ people         source_id · job_role · department · facility
+  ├─ courses        source_id · title · content_updated_at · required
   ├─ completions    person · course · status · completed_at · due_at
   └─ evidence_records  attestations, acknowledgements, audit results
 ```
 
 `courses.content_updated_at` is what makes policy/training drift detectable, and
 is the single most valuable field the LMS supplies.
+
+## External identity
+
+Every row that came from a connected system carries where it came from, as
+columns rather than as a JSON blob:
+
+```
+source_system        which connector supplied it
+source_record_type   the vendor's own name for the record
+source_id            the vendor's identifier, unaltered
+source_updated_at    when the vendor last changed it
+imported_at          when Veris read it (Veris's clock, labelled as such)
+```
+
+`store.record_origin(table, id)` answers it for any row — the question an
+auditor asks and the question a support engineer asks.
+
+**The vendor's id is never the Veris id.** `id` is minted in Veris's own
+namespace (`uuid5` over the connection and the source id). It is *derived* so a
+re-sync updates a row instead of duplicating it, but derivation is not adoption:
+two systems that happen to number their people identically produce two rows, a
+vendor that renumbers does not silently rewrite Veris's history, and nothing
+downstream can parse a Veris id back into a vendor id and act on it.
+
+A record arriving with no identifier of its own is rejected and isolated as a
+failed record. There is no correct guess: the next sync would either duplicate
+it or overwrite something else.
+
+## Schema versions
+
+`schema_meta` records the version. Migrations are additive and applied at
+startup (`MIGRATIONS` in `veris/store.py`). A hospital running Veris for a month
+has connected systems and reviewed findings; an upgrade that asked them to start
+again would be asking them to discard organizational knowledge.
+
+`tests/test_migrations.py` builds a database in the previous shape by hand and
+asserts that data survives, that reopening reapplies nothing, and that a
+migrated database has the same shape as a fresh one — the check that catches
+drift between the two routes to the same version.
 
 ## Metadata-only documents
 

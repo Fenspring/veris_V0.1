@@ -62,7 +62,7 @@ class _MockBase:
 
     def health_check(self) -> HealthStatus:
         return HealthStatus("CONNECTED" if self._authenticated else "DISCONNECTED",
-                            "Demo connector", {"mock": True})
+                            "Demo connector", latency_ms=0, detail={"mock": True})
 
     def disconnect(self) -> None:
         self._authenticated = False
@@ -98,9 +98,10 @@ class MockLMS(_MockBase):
         category="LMS",
         vendor="Veris Demo",
         auth_methods=("none",),
-        capabilities=("courses", "users", "assignments", "completions"),
+        capabilities=("course_catalog", "person_roster", "completion_records"),
         reads=("Course catalogue", "Staff roster and roles",
                "Assignments and due dates", "Completion records"),
+        supports_incremental=True,
         is_mock=True,
         setup_note="Demo data. Connect a real LMS to replace it.",
     )
@@ -204,11 +205,14 @@ class MockPolicySystem(_MockBase):
         category="POLICY",
         vendor="Veris Demo",
         auth_methods=("none",),
-        capabilities=("policies", "versions", "owners", "review_dates",
-                      "acknowledgments"),
-        reads=("Policy documents and text", "Owner and department",
-               "Version history and effective dates", "Review schedule",
-               "Acknowledgement records"),
+        # Metadata only. This connector returns no policy text and no
+        # acknowledgement records, so it declares neither — an overclaimed
+        # capability would make the intelligence layer believe it can assess
+        # something no data supports.
+        capabilities=("policy_metadata",),
+        reads=("Policy titles, owners and departments",
+               "Version history and effective dates", "Review schedule"),
+        supports_incremental=True,
         is_mock=True,
         setup_note="Demo data. Connect a real policy system to replace it.",
     )
@@ -268,7 +272,9 @@ class MockRegulatory(_MockBase):
         category="REGULATORY",
         vendor="Veris Demo",
         auth_methods=("none",),
-        capabilities=("authorities", "standards", "requirements", "revisions"),
+        # The feed names requirements and dates it but does not supply their
+        # text, so `standard_text` is not declared: nothing here can be cited.
+        capabilities=("standard_metadata",),
         reads=("Standards and requirements", "Effective and revision dates",
                "Citations and crosswalks"),
         is_mock=True,

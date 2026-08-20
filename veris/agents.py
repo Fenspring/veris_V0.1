@@ -25,7 +25,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Callable
 
+from .connectors.base import CAPABILITIES, describe_capabilities
 from .store import Store
+from .sync import SyncEngine
 
 AGENTS: dict[str, "AgentInfo"] = {}
 
@@ -36,8 +38,18 @@ class AgentInfo:
     name: str
     description: str
     produces: tuple[str, ...]
-    requires: tuple[str, ...] = ()      # what must be connected for it to run
+    # Capabilities, not connector ids and not categories. An agent depends on
+    # *what it can know*, so connecting a different vendor that supplies the
+    # same thing makes the agent run without anyone editing it, and connecting
+    # a vendor that supplies less does not make it guess.
+    requires: tuple[str, ...] = ()
     version: str = "1.0"
+
+    def __post_init__(self) -> None:
+        for capability in self.requires:
+            if capability not in CAPABILITIES:
+                raise ValueError(
+                    f"{self.id} requires unknown capability {capability!r}")
 
 
 @dataclass
@@ -46,7 +58,36 @@ class AgentResult:
     findings_created: int = 0
     examined: int = 0
     skipped_reason: str = ""
+    missing_capabilities: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+
+    def as_dict(self) -> dict:
+        return {
+            "agent": self.agent_id, "examined": self.examined,
+            "findings": self.findings_created, "notes": self.notes,
+            "skipped": self.skipped_reason,
+            "missing_capabilities": describe_capabilities(self.missing_capabilities),
+        }
+
+
+def available_capabilities(store: Store) -> dict[str, list[str]]:
+    """What the connected systems actually deliver right now."""
+    return SyncEngine(store).connected_capabilities()
+
+
+def missing_capabilities(store: Store, info: AgentInfo) -> list[str]:
+    have = available_capabilities(store)
+    return [c for c in info.requires if c not in have]
+
+
+def cannot_run_because(missing: list[str]) -> str:
+    """Why an agent did not run, in the customer's terms.
+
+    Never "requirements not met". The sentence names the knowledge that is
+    missing and what its absence costs, because the customer's next action is
+    to connect a system, and they need to know which one and why.
+    """
+    return " ".join(CAPABILITIES[c].without_it for c in missing if c in CAPABILITIES)
 
 
 def register(info: AgentInfo, fn: Callable[[Store], AgentResult]) -> None:
@@ -86,7 +127,7 @@ POLICY_TRAINING = AgentInfo(
     description="Compares when a policy was last effective against when the "
                 "course that teaches it was last revised.",
     produces=("REQUIRES_HUMAN_REVIEW",),
-    requires=("POLICY", "LMS"),
+    requires=("policy_metadata", "course_catalog"),
 )
 
 # Course title fragments that indicate a course teaches a policy subject. Kept
@@ -105,14 +146,13 @@ DRIFT_DAYS = 90
 
 def run_policy_training(store: Store) -> AgentResult:
     result = AgentResult(POLICY_TRAINING.id)
-    have = {r["category"] for r in store.q(
-        "SELECT DISTINCT category FROM connections WHERE status IN ('SYNCED','CONNECTED')")}
-    courses = store.q("SELECT * FROM courses")
-    if not courses:
-        result.skipped_reason = ("No learning system is connected, so Veris cannot "
-                                 "compare policies against the training that teaches them.")
+    missing = missing_capabilities(store, POLICY_TRAINING)
+    if missing:
+        result.skipped_reason = cannot_run_because(missing)
+        result.missing_capabilities = missing
         return result
 
+    courses = store.q("SELECT * FROM courses")
     policies = store.q(
         "SELECT * FROM documents WHERE document_type IN ('POLICY','PROCEDURE')")
     scope = _scope(store)
@@ -166,12 +206,17 @@ GAP_ANALYSIS = AgentInfo(
     description="Finds policies with no owner, overdue reviews, requirements "
                 "with no connected policy, and training with no policy behind it.",
     produces=("POTENTIAL_GAP", "REQUIRES_HUMAN_REVIEW"),
-    requires=(),
+    requires=("policy_metadata",),
 )
 
 
 def run_gap_analysis(store: Store) -> AgentResult:
     result = AgentResult(GAP_ANALYSIS.id)
+    missing = missing_capabilities(store, GAP_ANALYSIS)
+    if missing:
+        result.skipped_reason = cannot_run_because(missing)
+        result.missing_capabilities = missing
+        return result
     scope = _scope(store)
     today = datetime.now().date().isoformat()
 
@@ -277,6 +322,17 @@ def run_survey_readiness(store: Store) -> AgentResult:
         result.notes.append(
             f"Nothing connected plays the {role.lower()} role, so readiness in "
             f"that dimension cannot be assessed.")
+
+    # The same statement from the other direction: what nothing connected
+    # supplies, and what each absence costs. This is the honest half of a
+    # readiness view and the reason there is no score.
+    have = available_capabilities(store)
+    result.missing_capabilities = [c for c in CAPABILITIES if c not in have]
+    if result.missing_capabilities:
+        result.notes.append(
+            f"{len(result.missing_capabilities)} kinds of knowledge are not "
+            f"connected. Each one is listed with what its absence costs, because "
+            f"a readiness view that hides them would be reporting on itself.")
     return result
 
 

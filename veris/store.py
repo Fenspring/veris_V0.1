@@ -80,7 +80,7 @@ CONNECTION_STATES = (
 )
 CONNECTOR_CATEGORIES = ("LMS", "POLICY", "REGULATORY", "IDENTITY", "DOCUMENT", "EVIDENCE")
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA = """
 PRAGMA journal_mode=WAL;
@@ -105,6 +105,12 @@ CREATE TABLE IF NOT EXISTS sources (
     retrieval_date   TEXT,
     reference_url    TEXT,
     content_hash     TEXT,
+    -- External identity (§7). Preserved verbatim, never used as the key.
+    source_system    TEXT,               -- connector id the record came from
+    source_record_type TEXT,             -- the vendor's own name for it
+    source_id        TEXT,               -- the vendor's identifier, unaltered
+    source_updated_at TEXT,              -- when the vendor last changed it
+    imported_at      TEXT,               -- when Veris read it
     created_at       TEXT NOT NULL
 );
 
@@ -123,6 +129,12 @@ CREATE TABLE IF NOT EXISTS documents (
     storage_path   TEXT,                 -- the original artifact, retained
     canonical_path TEXT,                 -- frozen extracted text; spans index into this
     metadata       TEXT,                 -- JSON
+    source_system  TEXT,
+    source_record_type TEXT,
+    source_ref     TEXT,                 -- the vendor's id ('source_id' is taken
+                                         -- here by the FK to sources)
+    source_updated_at TEXT,
+    imported_at    TEXT,
     created_at     TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_documents_source ON documents(source_id);
@@ -298,48 +310,65 @@ CREATE INDEX IF NOT EXISTS ix_sync_runs_conn ON sync_runs(connection_id, started
 -- Operational facts. Linked to the graph, never a source of citations.
 
 CREATE TABLE IF NOT EXISTS people (
+    -- `id` is a Veris identifier and always will be. The vendor's identifier
+    -- lives in source_id, unaltered, so it can be shown, matched and exported —
+    -- but nothing in Veris depends on the vendor's key space staying stable,
+    -- and the same person arriving from two systems does not become one row by
+    -- accident of shared numbering.
     id            TEXT PRIMARY KEY,
     connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
-    external_id   TEXT NOT NULL,
+    source_system TEXT,
+    source_record_type TEXT,
+    source_id     TEXT NOT NULL,
+    source_updated_at TEXT,
+    imported_at   TEXT,
     name          TEXT,
     job_role      TEXT,
     department    TEXT,
     facility      TEXT,
     active        INTEGER DEFAULT 1,
     updated_at    TEXT,
-    UNIQUE (connection_id, external_id)
+    UNIQUE (connection_id, source_id)
 );
 CREATE INDEX IF NOT EXISTS ix_people_role ON people(job_role);
 
 CREATE TABLE IF NOT EXISTS courses (
     id            TEXT PRIMARY KEY,
     connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
-    external_id   TEXT NOT NULL,
+    source_system TEXT,
+    source_record_type TEXT,
+    source_id     TEXT NOT NULL,
+    source_updated_at TEXT,
+    imported_at   TEXT,
     title         TEXT NOT NULL,
     description   TEXT,
     category      TEXT,
     content_updated_at TEXT,            -- what makes policy/training drift detectable
     required      INTEGER DEFAULT 0,
     updated_at    TEXT,
-    UNIQUE (connection_id, external_id)
+    UNIQUE (connection_id, source_id)
 );
 
 CREATE TABLE IF NOT EXISTS completions (
     id            TEXT PRIMARY KEY,
     connection_id TEXT NOT NULL REFERENCES connections(id) ON DELETE CASCADE,
-    external_id   TEXT NOT NULL,
+    source_system TEXT,
+    source_record_type TEXT,
+    source_id     TEXT NOT NULL,
+    source_updated_at TEXT,
+    imported_at   TEXT,
     -- Internal ids are resolved when the other side of the reference exists.
     -- They stay NULL until then: a completions export may arrive before the
     -- roster, or the people may live in a different system entirely, and
     -- refusing the row would discard data over arrival order.
     person_id     TEXT REFERENCES people(id) ON DELETE SET NULL,
     course_id     TEXT REFERENCES courses(id) ON DELETE SET NULL,
-    person_external_id TEXT,
-    course_external_id TEXT,
+    person_source_id TEXT,
+    course_source_id TEXT,
     status        TEXT,                 -- COMPLETED | ASSIGNED | OVERDUE | EXEMPT
     completed_at  TEXT,
     due_at        TEXT,
-    UNIQUE (connection_id, external_id)
+    UNIQUE (connection_id, source_id)
 );
 CREATE INDEX IF NOT EXISTS ix_completions_course ON completions(course_id);
 CREATE INDEX IF NOT EXISTS ix_completions_status ON completions(status);
@@ -350,7 +379,11 @@ CREATE INDEX IF NOT EXISTS ix_completions_status ON completions(status);
 CREATE TABLE IF NOT EXISTS evidence_records (
     id            TEXT PRIMARY KEY,
     connection_id TEXT REFERENCES connections(id) ON DELETE CASCADE,
-    external_id   TEXT,
+    source_system TEXT,
+    source_record_type TEXT,
+    source_id     TEXT,
+    source_updated_at TEXT,
+    imported_at   TEXT,
     evidence_type TEXT NOT NULL,        -- TRAINING_COMPLETION | ACKNOWLEDGMENT | AUDIT | ATTESTATION
     subject       TEXT,
     source        TEXT,
@@ -387,6 +420,76 @@ CREATE TABLE IF NOT EXISTS events (
 """
 
 
+# Indexes over columns that migrations introduce. Run after migration rather
+# than with the schema: on an existing database the column does not exist yet
+# when the schema script runs.
+POST_MIGRATION_INDEXES = """
+CREATE INDEX IF NOT EXISTS ix_documents_origin ON documents(source_system, source_ref);
+CREATE INDEX IF NOT EXISTS ix_people_origin ON people(source_system, source_id);
+CREATE INDEX IF NOT EXISTS ix_courses_origin ON courses(source_system, source_id);
+"""
+
+# --- Migrations --------------------------------------------------------------
+#
+# Additive and applied at startup. A hospital that has been running Veris for a
+# month has connected systems and reviewed findings; an upgrade that asked them
+# to start again would be asking them to discard organizational knowledge.
+#
+# Each step is a list of statements applied in order inside one transaction. A
+# statement that has already been applied is skipped rather than failing, so a
+# database that was created fresh at the current version and one that arrived
+# here by migration end up identical.
+
+MIGRATIONS: dict[int, list[str]] = {
+    # 3 → 4: external identity as first-class columns (§7). Before this the
+    # vendor's identifier was a bare `external_id` and the connector that
+    # supplied it was recoverable only by joining through connections, which
+    # made "where did this row come from?" a query nobody wrote.
+    4: [
+        "ALTER TABLE people RENAME COLUMN external_id TO source_id",
+        "ALTER TABLE courses RENAME COLUMN external_id TO source_id",
+        "ALTER TABLE completions RENAME COLUMN external_id TO source_id",
+        "ALTER TABLE completions RENAME COLUMN person_external_id TO person_source_id",
+        "ALTER TABLE completions RENAME COLUMN course_external_id TO course_source_id",
+        "ALTER TABLE evidence_records RENAME COLUMN external_id TO source_id",
+        "ALTER TABLE people ADD COLUMN source_system TEXT",
+        "ALTER TABLE people ADD COLUMN source_record_type TEXT",
+        "ALTER TABLE people ADD COLUMN source_updated_at TEXT",
+        "ALTER TABLE people ADD COLUMN imported_at TEXT",
+        "ALTER TABLE courses ADD COLUMN source_system TEXT",
+        "ALTER TABLE courses ADD COLUMN source_record_type TEXT",
+        "ALTER TABLE courses ADD COLUMN source_updated_at TEXT",
+        "ALTER TABLE courses ADD COLUMN imported_at TEXT",
+        "ALTER TABLE completions ADD COLUMN source_system TEXT",
+        "ALTER TABLE completions ADD COLUMN source_record_type TEXT",
+        "ALTER TABLE completions ADD COLUMN source_updated_at TEXT",
+        "ALTER TABLE completions ADD COLUMN imported_at TEXT",
+        "ALTER TABLE evidence_records ADD COLUMN source_system TEXT",
+        "ALTER TABLE evidence_records ADD COLUMN source_record_type TEXT",
+        "ALTER TABLE evidence_records ADD COLUMN source_updated_at TEXT",
+        "ALTER TABLE evidence_records ADD COLUMN imported_at TEXT",
+        "ALTER TABLE documents ADD COLUMN source_system TEXT",
+        "ALTER TABLE documents ADD COLUMN source_record_type TEXT",
+        "ALTER TABLE documents ADD COLUMN source_ref TEXT",
+        "ALTER TABLE documents ADD COLUMN source_updated_at TEXT",
+        "ALTER TABLE documents ADD COLUMN imported_at TEXT",
+        "ALTER TABLE sources ADD COLUMN source_system TEXT",
+        "ALTER TABLE sources ADD COLUMN source_record_type TEXT",
+        "ALTER TABLE sources ADD COLUMN source_id TEXT",
+        "ALTER TABLE sources ADD COLUMN source_updated_at TEXT",
+        "ALTER TABLE sources ADD COLUMN imported_at TEXT",
+        "CREATE INDEX IF NOT EXISTS ix_documents_origin"
+        " ON documents(source_system, source_ref)",
+    ],
+}
+
+# Tables carrying external identity, and how a row in each is described. Used by
+# `record_origin` and by the contract tests that assert nothing arrives from a
+# connected system without its origin recorded.
+EXTERNAL_IDENTITY_TABLES = ("people", "courses", "completions",
+                            "evidence_records", "documents", "sources")
+
+
 def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -404,9 +507,39 @@ class Store:
         self.db = sqlite3.connect(self.path, check_same_thread=False)
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
-        if not self.db.execute("SELECT 1 FROM schema_meta").fetchone():
-            self.db.execute("INSERT INTO schema_meta VALUES (?,?)", (SCHEMA_VERSION, now()))
+        self._migrate()
+        self.db.executescript(POST_MIGRATION_INDEXES)
         self.db.commit()
+
+    # --- schema --------------------------------------------------------------
+
+    def _migrate(self) -> None:
+        row = self.db.execute(
+            "SELECT version FROM schema_meta ORDER BY version DESC LIMIT 1").fetchone()
+        if row is None:
+            # Fresh database: SCHEMA above already describes the current shape.
+            self.db.execute("INSERT INTO schema_meta VALUES (?,?)",
+                            (SCHEMA_VERSION, now()))
+            return
+        current = row["version"]
+        for version in range(current + 1, SCHEMA_VERSION + 1):
+            for statement in MIGRATIONS.get(version, []):
+                try:
+                    self.db.execute(statement)
+                except sqlite3.OperationalError as e:
+                    # Already applied — a column that exists, an index that
+                    # exists, a rename already done. Anything else is a real
+                    # failure and must not be swallowed.
+                    if "duplicate column" in str(e) or "no such column" in str(e):
+                        continue
+                    raise
+            self.db.execute("INSERT INTO schema_meta VALUES (?,?)", (version, now()))
+        self.db.commit()
+
+    def schema_version(self) -> int:
+        row = self.db.execute(
+            "SELECT version FROM schema_meta ORDER BY version DESC LIMIT 1").fetchone()
+        return row["version"] if row else 0
 
     # --- writes --------------------------------------------------------------
 
@@ -569,6 +702,27 @@ class Store:
             "SELECT * FROM reviews WHERE target_type='FINDING' AND target_id=? "
             "ORDER BY created_at", (finding_id,))
         return f
+
+    def record_origin(self, table: str, row_id: str) -> dict | None:
+        """Where a row came from, in the vendor's own terms.
+
+        Answers the question an auditor asks and a support engineer asks: this
+        number on the screen — which system said it, what did that system call
+        it, when did it last change there, and when did we read it.
+        """
+        if table not in EXTERNAL_IDENTITY_TABLES:
+            raise ValueError(f"{table} does not carry external identity")
+        ref = "source_ref" if table == "documents" else "source_id"
+        row = self.one(
+            f"SELECT id, source_system, source_record_type, {ref} AS source_id,"
+            f" source_updated_at, imported_at FROM {table} WHERE id = ?", (row_id,))
+        if not row:
+            return None
+        row["veris_id"] = row.pop("id")
+        row["origin"] = ("Uploaded or ingested locally" if not row["source_system"]
+                         else f"{row['source_system']} · {row['source_record_type']}"
+                              f" · {row['source_id']}")
+        return row
 
     def stats(self) -> dict:
         def n(t: str) -> int:

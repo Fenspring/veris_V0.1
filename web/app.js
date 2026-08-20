@@ -719,7 +719,8 @@ async function agentsView() {
       <span class="badge ${a.runnable ? 'b-low' : 'b-neutral'}">${a.runnable ? 'ready' : 'needs a connection'}</span>
       <div class="title" style="margin-top:.4rem">${esc(a.name)}</div>
       <div class="stmt">${esc(a.description)}</div>
-      ${a.blocked_by.length ? `<div class="meta" style="color:var(--med)">Needs: ${a.blocked_by.map(esc).join(', ')}</div>` : ''}
+      <div class="meta">Uses: ${a.requires.length ? a.requires.map(c => esc(c.label)).join(' · ') : 'what is already in the graph'}</div>
+      ${a.blocked_by.length ? `<div class="stmt" style="color:var(--med)">${esc(a.blocked_reason)}</div>` : ''}
       <div class="rowbtns"><button class="btn sm" ${a.runnable ? '' : 'disabled'}
         onclick="runAgent('${a.id}')">Run</button></div>
       <div id="ag-${a.id}"></div></div>`));
@@ -734,9 +735,12 @@ window.runAgent = async (id) => {
   try {
     const r = await api(`/agents/${id}/run`, { method: 'POST' });
     out.innerHTML = `<div class="meta">Examined ${r.examined} · created
-      ${r.findings_created} finding${r.findings_created === 1 ? '' : 's'}
-      ${r.skipped_reason ? '· ' + esc(r.skipped_reason) : ''}</div>
-      ${(r.notes || []).map(n => `<div class="stmt">${esc(n)}</div>`).join('')}`;
+      ${r.findings} finding${r.findings === 1 ? '' : 's'}</div>
+      ${r.skipped ? `<div class="stmt" style="color:var(--med)">${esc(r.skipped)}</div>` : ''}
+      ${(r.notes || []).map(n => `<div class="stmt">${esc(n)}</div>`).join('')}
+      ${(r.missing_capabilities || []).length ? `<div class="meta" style="margin-top:.4rem">
+        What is not connected</div>` + r.missing_capabilities.map(c =>
+        `<div class="stmt"><b>${esc(c.label)}</b> — ${esc(c.without_it)}</div>`).join('') : ''}`;
   } catch (e) { out.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
 };
 

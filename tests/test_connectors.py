@@ -16,12 +16,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from veris.connectors.base import (  # noqa: E402
-    AUTH_METHODS, CATEGORIES, Connector, ConnectorError, RateLimited,
-    SyncPage, TransientError, registry,
+    AUTH_METHODS, CAPABILITIES, CATEGORIES, HEALTH_STATES, Connector,
+    ConnectorError, ConnectorHealth, RateLimited, SyncPage, TransientError,
+    registry,
 )
 from veris.connectors.catalog import map_columns, register_catalog  # noqa: E402
 from veris.connectors.mock import register_mocks  # noqa: E402
-from veris.store import Store  # noqa: E402
+from veris.store import EXTERNAL_IDENTITY_TABLES, Store  # noqa: E402
 from veris.sync import SyncEngine, _redact  # noqa: E402
 
 register_mocks()
@@ -326,6 +327,132 @@ def test_references_tolerate_arrival_order():
     unresolved = store.q(
         "SELECT COUNT(*) n FROM completions WHERE person_id IS NULL")[0]["n"]
     assert unresolved == 0, "reference did not resolve once the roster arrived"
+
+
+# --- capabilities, health, and external identity ----------------------------
+
+def test_capabilities_are_declared_from_the_shared_vocabulary():
+    """A connector may not invent a capability.
+
+    The intelligence layer decides what it can assess by reading these; a
+    free-text claim would be a promise nothing downstream can act on.
+    """
+    for info in registry.all():
+        assert info.capabilities, f"{info.id} declares no capabilities"
+        for capability in info.capabilities:
+            assert capability in CAPABILITIES, f"{info.id}: {capability}"
+
+
+def test_every_capability_states_what_its_absence_costs():
+    """The vocabulary is what the product says when something is not connected,
+    so an entry with no `without_it` would leave a silent hole in the UI."""
+    for capability in CAPABILITIES.values():
+        assert capability.kind in ("knowledge", "operational"), capability.id
+        assert capability.enables.strip(), capability.id
+        assert capability.without_it.strip(), capability.id
+        assert capability.without_it.strip().endswith("."), capability.id
+
+
+def test_health_is_one_shape_for_every_connector():
+    """Whatever the vendor, the dashboard renders the same record."""
+    store = _store()
+    engine = SyncEngine(store, sleep=lambda s: None)
+    for cid in ALL:
+        outcome = engine.connect(cid)
+        engine.run(outcome["connection_id"])
+        health = engine.health(outcome["connection_id"])
+        assert isinstance(health, ConnectorHealth)
+        assert health.state in HEALTH_STATES, f"{cid}: {health.state}"
+        assert health.connector_id == cid
+        assert health.last_run and health.last_run["status"] in (
+            "SUCCEEDED", "PARTIAL", "FAILED")
+        assert health.consecutive_failures == 0
+        rendered = health.as_dict()
+        assert isinstance(rendered["capabilities"], list)
+        for entry in rendered["capabilities"]:
+            assert {"id", "label", "kind", "enables", "without_it"} <= set(entry)
+
+
+def test_health_reports_a_declared_capability_that_delivered_nothing():
+    """Reachable is not the same as working.
+
+    The demo policy system declares policy metadata and delivers it; a file
+    import that declares four capabilities and carries one export must report
+    the other three as degraded rather than as connected.
+    """
+    store = _store()
+    engine = SyncEngine(store, sleep=lambda s: None)
+    csv_text = "course_id,title,last_revised\nC-1,Hand Hygiene,2025-01-01\n"
+    outcome = engine.connect("file_import", config={"content": csv_text,
+                                                    "record_type": "course"})
+    engine.run(outcome["connection_id"])
+    health = engine.health(outcome["connection_id"])
+    assert "course_catalog" in health.capabilities
+    assert "completion_records" in health.degraded_capabilities
+    assert "person_roster" in health.degraded_capabilities
+
+
+def test_normalized_rows_preserve_external_identity():
+    """Every row from a connected system records where it came from (§7)."""
+    store = _store()
+    engine = SyncEngine(store, sleep=lambda s: None)
+    outcome = engine.connect("mock_lms", config={"scope_limit": 5})
+    engine.run(outcome["connection_id"])
+    for table in ("people", "courses", "completions"):
+        rows = store.q(f"SELECT * FROM {table}")
+        assert rows, f"{table} is empty"
+        for row in rows:
+            assert row["source_system"] == "mock_lms", table
+            assert row["source_record_type"], table
+            assert row["source_id"], table
+            assert row["imported_at"], table
+
+
+def test_the_vendor_id_is_never_the_veris_id():
+    """Veris mints its own identity. The vendor's key is data, not the key."""
+    store = _store()
+    engine = SyncEngine(store, sleep=lambda s: None)
+    outcome = engine.connect("mock_lms", config={"scope_limit": 5})
+    engine.run(outcome["connection_id"])
+    for table, prefix in (("people", "per_"), ("courses", "crs_")):
+        for row in store.q(f"SELECT * FROM {table}"):
+            assert row["id"] != row["source_id"], table
+            assert row["id"].startswith(prefix), table
+            assert row["source_id"] not in row["id"], (
+                f"{table}: the vendor id leaked into the Veris id")
+
+
+def test_a_record_with_no_source_identifier_is_rejected_not_guessed():
+    """Without a stable key the next sync would duplicate or overwrite it."""
+    store = _store()
+    engine = SyncEngine(store, sleep=lambda s: None)
+    outcome = engine.connect("mock_lms", config={"scope_limit": 2})
+    try:
+        engine._apply(outcome["connection_id"],
+                      {"_type": "course", "title": "Nameless"}, "mock_lms")
+        raise AssertionError("a record with no source id was accepted")
+    except ValueError:
+        pass
+
+
+def test_origin_of_any_row_is_answerable():
+    store = _store()
+    engine = SyncEngine(store, sleep=lambda s: None)
+    outcome = engine.connect("mock_lms", config={"scope_limit": 3})
+    engine.run(outcome["connection_id"])
+    course = store.q("SELECT id FROM courses LIMIT 1")[0]
+    origin = store.record_origin("courses", course["id"])
+    assert origin["veris_id"] == course["id"]
+    assert origin["source_system"] == "mock_lms"
+    assert "mock_lms" in origin["origin"]
+    for table in EXTERNAL_IDENTITY_TABLES:
+        store.record_origin(table, "does-not-exist")   # must not raise
+
+
+def test_schema_migrations_are_recorded():
+    store = _store()
+    from veris.store import SCHEMA_VERSION
+    assert store.schema_version() == SCHEMA_VERSION
 
 
 if __name__ == "__main__":

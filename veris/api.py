@@ -26,11 +26,16 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .agents import AGENTS, run_agent
+from .agents import (
+    AGENTS, available_capabilities, cannot_run_because, missing_capabilities,
+    run_agent,
+)
 from .analyze import analyze_source_version, impact_of_change
 from .ask import ask
 from .changes import find_version_pairs, record_changes
-from .connectors.base import ConnectorError, registry
+from .connectors.base import (
+    CAPABILITIES, ConnectorError, describe_capabilities, registry,
+)
 from .connectors.catalog import register_catalog
 from .connectors.mock import register_mocks
 from .credentials import backend as credential_backend, store_credential
@@ -546,20 +551,56 @@ def delete_connection(connection_id: str) -> dict:
     return {"status": "DISCONNECTED"}
 
 
+@app.get("/api/v1/connections/{connection_id}/health")
+def connection_health(connection_id: str) -> dict:
+    try:
+        return sync_engine.health(connection_id).as_dict()
+    except ConnectorError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.get("/api/v1/health/connections")
+def all_connection_health(probe: bool = Query(True)) -> list[dict]:
+    """Every connection in one shape, whatever the vendor."""
+    return [h.as_dict() for h in sync_engine.health_all(probe=probe)]
+
+
+@app.get("/api/v1/capabilities")
+def capabilities() -> dict:
+    """What Veris can and cannot assess, and what would change that.
+
+    The second half is the point. For every capability nothing supplies, this
+    reports what that costs and which connectors could provide it, so "Veris
+    cannot tell you X" is always followed by "connect Y and it can".
+    """
+    have = available_capabilities(store)
+    connected, absent = [], []
+    for cid, capability in CAPABILITIES.items():
+        entry = {**describe_capabilities([cid])[0]}
+        if cid in have:
+            entry["provided_by"] = have[cid]
+            connected.append(entry)
+        else:
+            entry["available_from"] = [
+                {"id": i.id, "name": i.name, "availability": i.availability}
+                for i in registry.providing(cid)]
+            absent.append(entry)
+    return {"connected": connected, "not_connected": absent}
+
+
 # --- agents ------------------------------------------------------------------
 
 @app.get("/api/v1/agents")
 def list_agents() -> list[dict]:
-    connected = {c["category"] for c in store.q(
-        "SELECT DISTINCT category FROM connections WHERE status IN ('SYNCED','CONNECTED')")}
     out = []
     for info in AGENTS.values():
-        missing = [r for r in info.requires if r not in connected]
+        missing = missing_capabilities(store, info)
         out.append({**info.__dict__,
                     "produces": list(info.produces),
-                    "requires": list(info.requires),
+                    "requires": describe_capabilities(info.requires),
                     "runnable": not missing,
-                    "blocked_by": missing})
+                    "blocked_by": describe_capabilities(missing),
+                    "blocked_reason": cannot_run_because(missing)})
     return out
 
 
@@ -567,8 +608,7 @@ def list_agents() -> list[dict]:
 def run_one_agent(agent_id: str) -> dict:
     if agent_id not in AGENTS:
         raise HTTPException(404, "Unknown agent")
-    result = run_agent(store, agent_id)
-    return result.__dict__
+    return run_agent(store, agent_id).as_dict()
 
 
 @app.get("/api/v1/overview")

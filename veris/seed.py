@@ -66,12 +66,7 @@ def seed(store: Store, corpus: Path, data_dir: Path, model: Model,
 
     # Agents run last: they reason across everything now connected, including
     # comparisons no single system could make on its own.
-    report["agents"] = [
-        {"agent": r.agent_id, "examined": r.examined,
-         "findings": r.findings_created, "notes": r.notes,
-         "skipped": r.skipped_reason}
-        for r in run_all(store)
-    ]
+    report["agents"] = [r.as_dict() for r in run_all(store)]
 
     report["stats"] = store.stats()
     return report

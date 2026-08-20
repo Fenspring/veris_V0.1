@@ -23,8 +23,9 @@ this is enforced rather than intended.
 ConnectorInfo(
     id="healthstream", name="HealthStream", category="LMS",
     auth_methods=("oauth", "api_key"),
-    capabilities=("courses", "users", "assignments", "completions"),
+    capabilities=("course_catalog", "person_roster", "completion_records"),
     reads=("Course catalogue", "Staff roster", "Assignments", "Completions"),
+    supports_incremental=True,
     availability="planned",              # available | planned
     requires_vendor_enablement=True,
     setup_note="Your vendor must enable API access before this can be connected.",
@@ -37,6 +38,68 @@ statement.
 
 `reads` is shown to the customer before they connect anything. It is written in
 their language, not the vendor's API vocabulary.
+
+## Capabilities
+
+`capabilities` are keys into a shared vocabulary (`CAPABILITIES` in
+`veris/connectors/base.py`), validated at registration. A connector cannot
+invent one.
+
+A capability is not a feature list. Each entry states what Veris can say when
+something supplies it, and **what Veris cannot assess when nothing does**:
+
+```python
+Capability(
+    "completion_records", "Training completions", "operational",
+    enables="Who completed what, and what is overdue.",
+    without_it="Veris cannot tell you whether required training was actually done.")
+```
+
+That second sentence is the one the product shows. It is why the vocabulary is
+shared rather than per-connector: "Veris cannot tell you X" is only useful next
+to "connect Y and it can", and both come from the same declaration.
+
+Capabilities split in the same place the data model does. `knowledge`
+capabilities become documents and can be cited; `operational` ones become
+normalized rows and never can (see `DATA_MODEL.md`).
+
+**Declared is not delivered.** `ConnectorInfo.capabilities` is what the vendor
+can provide. What a particular connection has actually supplied is computed from
+the rows it produced, and the difference is reported as
+`degraded_capabilities` — a connection can be reachable, authenticated and
+green while having quietly stopped returning completions.
+
+The intelligence layer consults delivered capabilities, never connector ids:
+
+```python
+POLICY_TRAINING = AgentInfo(..., requires=("policy_metadata", "course_catalog"))
+```
+
+Connect a different vendor that supplies the same thing and the agent runs, with
+no edit. Connect one that supplies less and the agent does not run, and says
+which knowledge is missing instead of guessing.
+
+## Health
+
+Every connection reports the same record, whatever the vendor
+(`ConnectorHealth`):
+
+```
+connection · connector · state · message · authenticated · auth_method
+capabilities · degraded_capabilities
+last_sync_at · next_sync_at · last_run{status, synced, failed, attempts}
+consecutive_failures · records · latency_ms · error (redacted) · checked_at
+```
+
+```
+GET /api/v1/connections/{id}/health
+GET /api/v1/health/connections
+GET /api/v1/capabilities        # what Veris can and cannot assess, and why
+```
+
+A connector supplies only `HealthStatus` — whether it can reach its source, and
+how long that took. Everything else is Veris's own record of what the connection
+has done, which is not something a vendor should be trusted to report.
 
 ## Availability, and never faking an integration
 
@@ -76,6 +139,13 @@ Every connector, mock or real, must pass `tests/test_connectors.py`:
 - one bad record does not abandon the run
 - credentials never reach the database; errors are redacted
 - references tolerate arrival order
+- capabilities come from the shared vocabulary, and every capability states what
+  its absence costs
+- health is one shape for every connector, and a declared-but-undelivered
+  capability is reported as degraded
+- every normalized row preserves its external identity, and the vendor's id is
+  never the Veris id
+- a record with no source identifier is rejected rather than given a guessed key
 
 A new connector is therefore proven against the same bar as the ones already
 shipping.
@@ -83,9 +153,14 @@ shipping.
 ## Writing one
 
 1. Implement the six methods. Put every vendor quirk inside.
-2. Declare `ConnectorInfo`, including `reads` in plain language.
+2. Declare `ConnectorInfo`: `reads` in plain language, and `capabilities` from
+   the shared vocabulary. Declare only what the connector actually returns —
+   an overclaimed capability makes the intelligence layer believe it can assess
+   something no data supports.
 3. Emit normalized records — see `DATA_MODEL.md` — each with `_type` and
-   `external_id`.
+   `source_id`. Optionally `_source_type` (the vendor's own name for the record)
+   and `_source_updated_at` (when the vendor last changed it); Veris records
+   both rather than substituting its own.
 4. Yield pages with cursors so long syncs resume.
 5. Raise `RateLimited(retry_after=…)` and `TransientError` so the engine can
    back off rather than fail.

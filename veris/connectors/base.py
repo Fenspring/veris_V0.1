@@ -5,7 +5,7 @@ one interface. Vendor-specific behaviour lives inside the connector and nowhere
 else; if a vendor's quirk leaks into the sync engine or the dashboard, the
 abstraction has failed.
 
-Three properties are deliberate:
+Four properties are deliberate:
 
 **Read-only by construction.** There is no write method. Veris reads,
 normalizes, relates and recommends; it never changes a customer's system. That
@@ -20,11 +20,17 @@ no dashboard code.
 **A connector states what it needs from the customer.** Many healthcare vendors
 require an account manager to enable API access. Saying so on the connection
 screen is the difference between an honest product and one that appears broken.
+
+**A connector declares what it can provide, in a shared vocabulary.** Not a
+feature list — a statement about what Veris can and cannot assess once this is
+connected. The intelligence layer reads those declarations rather than connector
+ids, so connecting a different vendor that supplies the same thing changes what
+Veris can say without changing a line of reasoning.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Iterable, Protocol, runtime_checkable
 
@@ -40,6 +46,97 @@ HEALTH_STATES = (
     "CONNECTED", "SYNCING", "SYNCED", "WARNING",
     "AUTHENTICATION_REQUIRED", "ERROR", "DISCONNECTED",
 )
+
+
+# --- What a connector can provide -------------------------------------------
+#
+# A capability is not a feature list. It is a statement about what Veris can and
+# cannot assess once this connector is connected, which is why each one carries
+# `without_it`: the sentence the product says when nothing supplies it.
+#
+# The intelligence layer reads this vocabulary rather than connector ids. An
+# agent declares the capabilities it needs; if none of the connected systems
+# provides one, the agent does not run and the customer is told exactly which
+# knowledge is missing and what that costs them. Adding a connector therefore
+# widens what Veris can assess without touching an agent, and removing one
+# narrows it without leaving an agent quietly guessing.
+
+
+@dataclass(frozen=True)
+class Capability:
+    id: str
+    label: str
+    kind: str        # 'knowledge' becomes citable documents; 'operational' never does
+    enables: str     # what Veris can say when something provides this
+    without_it: str  # what Veris cannot assess when nothing does
+
+
+CAPABILITIES: dict[str, Capability] = {c.id: c for c in (
+    # Knowledge. Text can be cited; metadata alone cannot, and the difference
+    # between these two is the difference between "Veris has read this" and
+    # "Veris knows this exists" (Decision 0007).
+    Capability(
+        "policy_metadata", "Policy metadata", "knowledge",
+        "Which policies exist, who owns them, their versions, effective dates "
+        "and review dates.",
+        "Veris cannot tell you which policies are unowned, overdue for review, "
+        "or missing entirely."),
+    Capability(
+        "policy_text", "Policy text", "knowledge",
+        "The words of each policy, so statements can be extracted and cited.",
+        "Veris can name your policies but cannot quote them, so no finding can "
+        "rest on what a policy actually says."),
+    Capability(
+        "standard_metadata", "Standard metadata", "knowledge",
+        "Which standards and elements of performance exist, and when each was "
+        "last revised.",
+        "Veris cannot tell you when a standard changed, so it cannot tell you "
+        "what a change affects."),
+    Capability(
+        "standard_text", "Standard text", "knowledge",
+        "The text of each requirement, so obligations can be extracted and cited.",
+        "Veris cannot read the requirements themselves, so gaps and conflicts "
+        "against them cannot be established."),
+    Capability(
+        "education_content", "Education content", "knowledge",
+        "The objectives a course teaches, so training can be compared against "
+        "the policy it is meant to teach.",
+        "Veris can see that a course exists but not what it teaches, so it "
+        "cannot tell you whether the training matches the policy."),
+
+    # Operational facts. True, useful, and never citable — no document says them.
+    Capability(
+        "course_catalog", "Course catalogue", "operational",
+        "Courses, their categories, whether they are required, and when the "
+        "content was last revised.",
+        "Veris cannot tell you whether training exists for an obligation."),
+    Capability(
+        "person_roster", "Staff roster", "operational",
+        "Who works here, in what role and department.",
+        "Veris cannot tell you who an obligation applies to."),
+    Capability(
+        "completion_records", "Training completions", "operational",
+        "Who completed what, and what is overdue.",
+        "Veris cannot tell you whether required training was actually done."),
+    Capability(
+        "acknowledgments", "Policy acknowledgements", "operational",
+        "Who attested to having read a policy.",
+        "Veris cannot tell you whether staff have seen a policy that changed."),
+    Capability(
+        "audit_results", "Audit and observation results", "operational",
+        "Observed practice — audits, rounding, competency validation.",
+        "Veris cannot tell you whether any of this is working in practice. It "
+        "can only tell you what the organization has written down."),
+    Capability(
+        "incident_records", "Reported events", "operational",
+        "Events staff have reported.",
+        "Veris cannot connect an obligation to what has gone wrong around it."),
+)}
+
+
+def describe_capabilities(ids: Iterable[str]) -> list[dict]:
+    """Capability declarations as data, for the UI and the API."""
+    return [asdict(CAPABILITIES[c]) for c in ids if c in CAPABILITIES]
 
 
 class ConnectorError(RuntimeError):
@@ -72,9 +169,16 @@ class ConnectorInfo:
     category: str
     vendor: str = ""
     auth_methods: tuple[str, ...] = ("api_key",)
-    capabilities: tuple[str, ...] = ()          # 'courses', 'policies', 'completions'
+    # Capabilities are keys into CAPABILITIES above, validated at registration.
+    # A free-text list would let a connector claim something the intelligence
+    # layer cannot act on, which is the same as claiming nothing.
+    capabilities: tuple[str, ...] = ()
     reads: tuple[str, ...] = ()                 # plain language, shown to the customer
     writes: tuple[str, ...] = ()                # always empty; present to be visibly empty
+    # How the source behaves, so the sync engine and the UI stop guessing.
+    supports_incremental: bool = False          # can return only what changed
+    supports_webhooks: bool = False
+    rate_limit: str = ""                        # plain language, e.g. "600 requests/minute"
     is_mock: bool = False
     # available: implemented and usable now.
     # planned:   declared so the customer can see it is coming and what it will
@@ -137,9 +241,54 @@ class SyncPage:
 
 @dataclass
 class HealthStatus:
+    """What a connector reports about itself. Deliberately small: a connector
+    knows whether it can reach its source, not what Veris has done with it."""
     state: str
     message: str = ""
+    latency_ms: int | None = None
     detail: dict = field(default_factory=dict)
+
+
+@dataclass
+class ConnectorHealth:
+    """One shape for every connection, whatever the vendor.
+
+    The Connection Center, the dashboard and the API all render this and nothing
+    else. A connector that behaves badly cannot invent its own status vocabulary,
+    and a page that shows connection health does not need to know which vendors
+    exist.
+
+    `capabilities` and `degraded_capabilities` are the operative fields: a
+    connection can be reachable and authenticated while no longer supplying
+    something the intelligence layer depends on, and that is a different failure
+    from being down.
+    """
+    connection_id: str
+    connector_id: str
+    name: str
+    category: str
+    state: str                                  # one of HEALTH_STATES
+    message: str = ""
+    is_mock: bool = False
+    authenticated: bool = False
+    auth_method: str = ""
+    capabilities: tuple[str, ...] = ()
+    degraded_capabilities: tuple[str, ...] = () # declared, but nothing arrived
+    last_sync_at: str | None = None
+    next_sync_at: str | None = None
+    last_run: dict | None = None                # status, counts, duration
+    consecutive_failures: int = 0
+    records: dict[str, int] = field(default_factory=dict)
+    latency_ms: int | None = None
+    error: str = ""                             # already redacted
+    checked_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds"))
+
+    def as_dict(self) -> dict:
+        d = asdict(self)
+        d["capabilities"] = describe_capabilities(self.capabilities)
+        d["degraded_capabilities"] = describe_capabilities(self.degraded_capabilities)
+        return d
 
 
 @runtime_checkable
@@ -179,6 +328,12 @@ class ConnectorRegistry:
         for method in info.auth_methods:
             if method not in AUTH_METHODS:
                 raise ValueError(f"Unknown auth method: {method}")
+        for capability in info.capabilities:
+            if capability not in CAPABILITIES:
+                # A capability the intelligence layer does not understand is a
+                # promise nothing can keep.
+                raise ValueError(
+                    f"{info.id} declares unknown capability {capability!r}")
         if info.writes:
             # Belt and braces: connectors are read-only, and a connector that
             # declares a write capability is a bug, not a feature request.
@@ -203,6 +358,14 @@ class ConnectorRegistry:
 
     def all(self) -> list[ConnectorInfo]:
         return sorted(self._info.values(), key=lambda i: (i.category, i.name))
+
+    def providing(self, capability: str) -> list[ConnectorInfo]:
+        """Every connector that could supply a capability, available or not.
+
+        Used to answer "what would I have to connect to find that out?" — the
+        other half of telling someone what Veris cannot assess.
+        """
+        return [i for i in self.all() if capability in i.capabilities]
 
     def by_category(self) -> dict[str, list[ConnectorInfo]]:
         out: dict[str, list[ConnectorInfo]] = {}

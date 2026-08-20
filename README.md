@@ -68,8 +68,11 @@ human decision.
   Vendors that are not implemented yet are listed, explained, and refuse to
   connect: showing a Connect button that silently does nothing would be worse
   than omitting the vendor.
-- **Agents** — modular reasoning over everything connected. An agent that needs
-  a system you have not connected says so rather than guessing.
+- **Agents** — modular reasoning over everything connected. Agents depend on
+  *capabilities* rather than vendors, so connecting a different system that
+  supplies the same knowledge makes them run with no code change — and an agent
+  that lacks something says which knowledge is missing and what its absence
+  costs, rather than guessing.
 - **Your Knowledge** — what the organization has connected, across the six roles
   knowledge plays: what requires, commits, operationalizes, teaches, validates
   and measures. Unfilled roles are shown with what their absence costs — the
@@ -189,6 +192,8 @@ POST /api/v1/documents                     upload and ingest
 GET  /api/v1/documents  ·  /{id}
 GET  /api/v1/knowledge?q=&role=
 GET  /api/v1/knowledge/{id}  ·  /{id}/relationships
+GET  /api/v1/capabilities                  what Veris can and cannot assess
+GET  /api/v1/connections/{id}/health  ·  /health/connections
 GET  /api/v1/changes  ·  /{id}/impact
 POST /api/v1/changes/detect
 GET  /api/v1/findings  ·  /{id}
@@ -205,14 +210,16 @@ Interactive documentation at `/docs`.
 ## Test and evaluate
 
 ```bash
-make test    # connector contract tests + retrieval regression
+make test    # connector contract tests + migrations + retrieval regression
 make eval    # 49 checks across ten intelligence capabilities
 ```
 
-Every connector — mock or real — must pass the same 20 contract tests: read-only
+Every connector — mock or real — must pass the same 29 contract tests: read-only
 by construction, idempotent re-sync, checkpointing, retry and backoff, per-record
-failure isolation, credential safety, error redaction, and tolerance of records
-arriving out of order.
+failure isolation, credential safety, error redaction, tolerance of records
+arriving out of order, capabilities drawn from a shared vocabulary, one health
+shape for every vendor, and external identity preserved on every row without the
+vendor's id ever becoming the Veris id.
 
 The evaluation covers extraction, lifecycle roles, change detection, conflict
 detection, gap detection, false positives on decoys, citation accuracy,
